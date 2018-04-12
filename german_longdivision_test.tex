@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{longdivision}
+
+\ExplSyntaxOn
+% Just want to give this stuff a name so it doesn't clutter up the interesting part of \longdiv_typeset:nnn
+\cs_set:Nn \longdiv_print_quotient:{
+    \bool_if:NF \l__longdiv_seen_digit_bool { \longdiv_linkedlist_remove_tail: }
+    \int_compare:nNnTF \l__longdiv_linkedlist_length_int = \c_zero
+        { 0 }
+        { \l__longdiv_linkedlist_tl }
+}
+
+% Replace the name "\longdiv_typeset_german:nnn" with "\longdiv_typeset:nnn" when you actually use this so that it changes the behavior of longdivision.
+% I just called it this so I can do a comparison.
+%
+% #1 = last remainder
+% #2 = denominator
+% #3 = numerator
+% \longdiv_print_quotient: prints the quotient
+% \longdiv_typeset_work:n prints the work
+\cs_set:Nn \longdiv_typeset_german:nnn  {
+    \begin{tabular}[t]{@{}l@{}}
+    % Change this part to make the spacing, etc look right
+    #3:\,#2 =\, \longdiv_print_quotient: \\
+    \longdiv_typeset_work:n { #1 }
+    \end{tabular}
+}
+%
+\ExplSyntaxOff
+
+\begin{document}
+
+\longdivision{11}{13}
+%
+\qquad\qquad
+%
+\ExplSyntaxOn \let\longdiv_typeset:nnn \longdiv_typeset_german:nnn \ExplSyntaxOff
+%
+\longdivision{1111}{13}
+\end{document}

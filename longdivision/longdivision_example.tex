@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{longdivision}
+
+\begin{document}
+
+\longdivision{72344}{7}
+%
+\qquad\qquad\qquad
+%
+\longdivision[2]{72344}{7}
+%
+\qquad\qquad\qquad
+%
+\intlongdivision{72344}{7}
+
+\vskip 50pt
+
+\longdivision{.1}{7} \qquad\qquad\qquad \longdivision{000.1}{7}
+%
+\qquad\qquad\qquad
+%
+\intlongdivision{1}{7} % Warning : no_division_occurred
+
+
+\longdivision[20]{1}{49}
+
+\longdivision{1}{49} % Warning : work_stopped_early
+
+\longdivision[20]{1}{97}
+
+\longdivision{1}{97} % Warning : work_stopped_early & division_stopped_early
+
+\longdivision{ 2 147 483.647 }{ 91 474 837 } % Warning : work_stopped_early & division_stopped_early
+
+% \longdivision{1..5}{7} % Error: dividend_invalid
+% \longdivision{2147483.647}{214748367} % Error : divisor_too_large
+% \longdivision{6}{1.5} % Error: divisor_not_int
+% \longdivision{6}{15a} % Error: divisor_invalid
+
+\end{document} 

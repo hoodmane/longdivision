@@ -1,0 +1,9 @@
+*.txt
+*.zip
+*.html
+*.prj
+*.bak
+*.aux
+*.log
+*.synctex
+*(busy)
