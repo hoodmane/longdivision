@@ -273,6 +273,8 @@
     }
 }
 
+\cs_generate_variant:Nn \tl_reverse:n {f}
+
 % Called if we stop early due to \l__longdiv_digits_requested_int.
 % #1 -- thing to divide
 % #2 -- divisor
@@ -285,12 +287,13 @@
     % For some reason we need to shift the typeset work over by half a digit if we quit early due to "stage" option
     % so we need to set a flag so that the work typesetter can know to do this.
     \bool_set_true:N \l__longdiv_stopped_early_stage_bool
+   % \int_set:Nn \l_tmpa_int { \use:c { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } } }
     \longdiv_linkedlist_add:n { \phantom { #3 0 } }
-    \exp_args:Nx \longdiv_typeset:nnn { \longdiv_delete_last:w #1 \longdiv_nil: } { #2 }
+    \exp_args:Nx \longdiv_typeset:nnn { \longdiv_delete_last:n { #1 } } { #2 }
 }
 
-% Deletes the last digit of number. Terminated by \longdiv_nil:
-\cs_new:Npn \longdiv_delete_last:w #1 #2 \longdiv_nil: { #1 }
+% Deletes the last digit of number.
+\cs_new:Nn \longdiv_delete_last:n {  \tl_reverse:f { \tl_tail:f { \tl_reverse:f { #1 } } } }
 
 % Divide when we are out of digits.
 % #1 -- remainder from last time (we will add a zero to the end)
