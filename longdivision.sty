@@ -7,38 +7,38 @@
 
 \ProvidesPackage{longdivision}
 \RequirePackage{xparse}
-\RequirePackage{xtemplate}
 
 \ExplSyntaxOn
 
-\DeclareObjectType{longdivision}{3}
-\DeclareTemplateInterface{longdivision}{longdivision}{3}{
-%    math-mode           : choice { false , true, default },
-    typeset-function : function{0}
+
+% Core registers
+\bool_new:N \l__longdiv_added_point_bool
+\bool_new:N \l__longdiv_seen_point_bool
+\bool_new:N \l__longdiv_seen_digit_bool
+\bool_new:N \l__longdiv_stopped_early_stage_bool
+\int_new:N  \l__longdiv_quotient_int
+\int_new:N  \l__longdiv_position_int
+\int_new:N  \l__longdiv_point_digit_int
+\int_new:N  \l__longdiv_repeat_digit_int
+
+\dim_new:N \g__longdiv_temp_dim % For measuring the distance to the right side of digits
+
+% These are used to make sure division doesn't run off the page.
+\int_new:N  \l__longdiv_extra_digits_int
+\int_new:N  \l__longdiv_max_extra_digits_int
+\int_set:Nn \l__longdiv_max_extra_digits_int { 100 } % Infinite (just needs to be greater than max_total_digits_int and max_display_divisions_int)
+\int_new:N  \l__longdiv_digits_requested_int
+\int_set:Nn \l__longdiv_digits_requested_int { 100 } % Infinite (just needs to be greater than max_total_digits_int and max_display_divisions_int)
+
+\int_const:Nn \c__longdiv_max_total_digits_int { 60 }
+\int_const:Nn \c__longdiv_max_display_divisions_int { 20 }
+\int_new:N \l__longdiv_display_divisions_int
+
+\keys_define:nn { longdivision }
+{
+    stage .int_set:N = \l__longdiv_digits_requested_int,
+    max-extra-digits .int_set:N = \l__longdiv_max_extra_digits_int
 }
-
-\cs_new:Npn \longdivisiontemp #1 #2 #3 #4 {
-    \UseInstance { longdivision } { #1 }
-        { #2 } { #3 } { #4 }
-}
-
-\DeclareTemplateCode { longdivision } { longdivision } { 3 } {
-    typeset-function = \longdiv_typeset_main:
-} {
-    \group_begin:
-    \AssignTemplateKeys
-    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #2 } { #3 } }
-    \group_end:
-}
-
-\def\mycommand{\show\longdiv_typeset_divisor:}
-
-\DeclareInstance { longdivision } { myinstance } { longdivision } {
-    typeset-function = \mycommand
-}
-
-
-
 %%
 %% The linked list
 %%
@@ -65,7 +65,7 @@
     \longdiv_linkedlist_set_next_do_nothing:
 }
 \cs_set_eq:NN \longdiv_linkedlist_element:n \use:n
-\cs_generate_variant:Nn \longdiv_linkedlist_add:n {f}
+\cs_generate_variant:Nn \longdiv_linkedlist_add:n { f }
 
 % The easy implementation of these next two commands is why I chose the "linked list" format
 
@@ -85,17 +85,20 @@
 \NewDocumentCommand \longdivision { omm } {
     \group_begin:
     \IfNoValueF { #1 } {
-        \int_set:Nn \l__longdiv_max_extra_digits_int { #1 }
+        \keys_set:nn { longdivision } { #1 }
     }
     \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #2 } { #3 } }
     \group_end:
 }
 
 % Same as \longdiv[0]{#1}{#2}.
-\NewDocumentCommand \intlongdivision { mm } {
+\NewDocumentCommand \intlongdivision { omm } {
     \group_begin:
+    \IfNoValueF { #1 } {
+        \keys_set:nn { longdivision } { #1 }
+    }
     \int_set:Nn \l__longdiv_max_extra_digits_int { 0 }
-    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #1 } { #2 } }
+    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #2 } { #3 } }
     \group_end:
 }
 
@@ -205,28 +208,9 @@
 %% Division
 %%
 
-% Core registers
-\bool_new:N \l__longdiv_added_point_bool
-\bool_new:N \l__longdiv_seen_point_bool
-\bool_new:N \l__longdiv_seen_digit_bool
-\int_new:N \l__longdiv_quotient_int
-\int_new:N \l__longdiv_position_int
-\int_new:N \l__longdiv_point_digit_int
-\int_new:N \l__longdiv_repeat_digit_int
-
-\dim_new:N \g__longdiv_temp_dim % For measuring the distance to the right side of digits
-
-% These are used to make sure division doesn't run off the page.
-\int_new:N \l__longdiv_extra_digits_int
-\int_new:N \l__longdiv_max_extra_digits_int
-\int_set:Nn \l__longdiv_max_extra_digits_int { 100 } % Infinite (just needs to be greater than max_total_digits_int and max_display_divisions_int)
-\int_const:Nn \c__longdiv_max_total_digits_int { 60 }
-\int_const:Nn \c__longdiv_max_display_divisions_int { 20 }
-\int_new:N \l__longdiv_display_divisions_int
-
 % #1 -- remainder
 % #2 -- divisor
-% #3 -- rest of divits
+% #3 -- rest of digits of dividend
 \cs_new:Nn \longdiv_get_new_digit:nnn {
     \tl_if_empty:nTF { #3 } { % Are we out of digits?
         % If we haven't hit the decimal point add it to the quotient and dividend
@@ -271,21 +255,42 @@
 % #2 -- divisor
 % Finds the quotient, adds it to the linked list and to the work token list then recurses.
 \cs_new:Nn \longdiv_divide:nn {
-    %\tl_show:n{#1}
-    \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 } { #2 } }
-    \bool_if:nF {
-        \int_compare_p:nNn \l__longdiv_quotient_int = \c_zero % If the quotient was zero, we might not have to print it
-        && !\l__longdiv_seen_digit_bool % If no other digits have been printed
-        && !\l__longdiv_seen_point_bool % And we are before the decimal point
-    }{ % Otherwise print it and record that we've seen a digit (all further 0's must be printed)
-        \bool_set_true:N \l__longdiv_seen_digit_bool
-        \longdiv_linkedlist_add:f { \int_use:N \l__longdiv_quotient_int }
+    \int_compare:nNnTF \l__longdiv_position_int = \l__longdiv_digits_requested_int {
+        \longdiv_divide_end_early:nnn { #1 } { #2 }
+    }{
+        \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 } { #2 } }
+        \bool_if:nF {
+            \int_compare_p:nNn \l__longdiv_quotient_int = \c_zero % If the quotient was zero, we might not have to print it
+            && !\l__longdiv_seen_digit_bool % If no other digits have been printed
+            && !\l__longdiv_seen_point_bool % And we are before the decimal point
+        }{ % Otherwise print it and record that we've seen a digit (all further 0's must be printed)
+            \bool_set_true:N \l__longdiv_seen_digit_bool
+            \longdiv_linkedlist_add:f { \int_use:N \l__longdiv_quotient_int }
+        }
+        \int_incr:N \l__longdiv_position_int
+        \longdiv_divide_record:nn{ #1 }{ #2 }
+        \longdiv_get_new_digit:xnn { \longdiv_remainder:nn { #1 } { #2 } } { #2 }
     }
-    \int_incr:N \l__longdiv_position_int
-    \longdiv_divide_record:nn{ #1 }{ #2 }
-    \longdiv_get_new_digit:xnn { \longdiv_remainder:nn { #1 } { #2 } } { #2 }
 }
 
+% Called if we stop early due to \l__longdiv_digits_requested_int.
+% #1 -- thing to divide
+% #2 -- divisor
+% #3 -- rest of digits of dividend
+% If we stop early, we have to pad the quotient with the extra length of the dividend
+% because the top bar of the division symbol uses the length of the quotient to determine
+% the length of the bar, but we need it to always be at least as long as the dividend.
+% Also, we need to delete the extra digit that has been carried down
+\cs_new:Nn \longdiv_divide_end_early:nnn {
+    % For some reason we need to shift the typeset work over by half a digit if we quit early due to "stage" option
+    % so we need to set a flag so that the work typesetter can know to do this.
+    \bool_set_true:N \l__longdiv_stopped_early_stage_bool
+    \longdiv_linkedlist_add:n { \phantom { #3 0 } }
+    \exp_args:Nx \longdiv_typeset:nnn { \longdiv_delete_last:w #1 \longdiv_nil: } { #2 }
+}
+
+% Deletes the last digit of number. Terminated by \longdiv_nil:
+\cs_new:Npn \longdiv_delete_last:w #1 #2 \longdiv_nil: { #1 }
 
 % Divide when we are out of digits.
 % #1 -- remainder from last time (we will add a zero to the end)
@@ -301,11 +306,12 @@
         \bool_if:nTF {
               \int_compare_p:nNn \l__longdiv_extra_digits_int = \l__longdiv_max_extra_digits_int
             ||\int_compare_p:nNn \l__longdiv_position_int = \c__longdiv_max_total_digits_int
+            ||\int_compare_p:nNn \l__longdiv_position_int = \l__longdiv_digits_requested_int
         }{
             \int_compare:nNnT \l__longdiv_position_int = \c__longdiv_max_total_digits_int {
                 \msg_warning:nn { longdivision } { division_stopped_early }
             }
-            \longdiv_typeset:nnn{#1}{#2}
+            \longdiv_typeset:nnn { #1 } { #2 }
         }{
             % Otherwise, record that we've seen this remainder and the position we're in
             % In case this is the first digit of the repeated part
@@ -314,17 +320,17 @@
                 \exp_not:N \longdiv_linkedlist_indicate_repeating_decimal:n { \int_use:N \l__longdiv_linkedlist_length_int }
             }
             % Now we have to use #10 everywhere
-            \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #10 } { #2 } }
+            \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 0 } { #2 } }
             \longdiv_linkedlist_add:f { \int_use:N \l__longdiv_quotient_int }
             \bool_set_true:N \l__longdiv_seen_digit_bool % We've seen a digit after the decimal point, don't need to remove it
             \int_incr:N \l__longdiv_position_int
             \int_incr:N \l__longdiv_extra_digits_int
-            \longdiv_divide_record:nn{#10}{#2}
-            \longdiv_divide_no_more_digits:xn { \longdiv_remainder:nn { #10 } { #2 } } { #2 }
+            \longdiv_divide_record:nn { #1 0 } { #2 }
+            \longdiv_divide_no_more_digits:xn { \longdiv_remainder:nn { #1 0 } { #2 } } { #2 }
         }
     }
 }
-\cs_generate_variant:Nn \longdiv_divide_no_more_digits:nn {xn}
+\cs_generate_variant:Nn \longdiv_divide_no_more_digits:nn { xn }
 
 % Whenever we see the remainder 0, we're done, and we don't have to put an overline.
 \cs_set:cpn { longdiv_remainders ~ 0 }{}
@@ -343,7 +349,7 @@
 % #2 -- old remainder (thing to subtract from)
 % #3 -- quotient * divisor (thing to subtract)
 \tl_new:N \l__longdiv_work_tl
-\cs_new:Nn \longdiv_divide_record:nn{
+\cs_new:Nn \longdiv_divide_record:nn {
     \int_compare:nNnTF \l__longdiv_display_divisions_int < \c__longdiv_max_display_divisions_int {
         \int_compare:nNnF \l__longdiv_quotient_int = \c_zero { % If the quotient was zero, nothing needs to be typeset
             \tl_set:Nx \l__longdiv_work_tl {
@@ -419,7 +425,7 @@
     }
 }
 
-\let\longdiv_linkedlist_indicate_repeating_decimal:n\longdiv_linkedlist_indicate_repeating_decimal_dots_first_last:n
+\let\longdiv_linkedlist_indicate_repeating_decimal:n\longdiv_linkedlist_indicate_repeating_decimal_overline:n
 
 
 % \l__longdiv_linkedlist_tl -- quotient
@@ -568,6 +574,8 @@
 % If we are past the decimal point, add  \c__longdiv_pointwidth_dim
 \cs_new:Nn \longdiv_typeset_setwidth:n {
     \dim_gset:Nn \g__longdiv_temp_dim { #1\c__longdiv_digitwidth_dim }
+    % For some reason we need to shift everything over by half a digit if we quit early due to "stage" option
+    \bool_if:NT \l__longdiv_stopped_early_stage_bool { \dim_gadd:Nn \g__longdiv_temp_dim { -0.5\c__longdiv_digitwidth_dim } }
     \int_compare:nNnT \l__longdiv_point_digit_int < {#1} {
         \dim_gadd:Nn \g__longdiv_temp_dim \c__longdiv_pointwidth_dim
     }
