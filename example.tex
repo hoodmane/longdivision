@@ -1,14 +1,35 @@
 \documentclass{article}
+\usepackage{tikz}
 \usepackage{longdivision}
 
 \begin{document}
 
-%\tracingall
-\longdivision[stage=4]{72344}{7}
+\longdivision[repeating decimal style = parentheses]{2344}{7}
 \qquad\qquad\qquad
-\longdivision[max-extra-digits = 2]{72344}{7}
+\longdivision[repeating decimal style = dots]{2344}{7}
+\qquad\qquad\qquad
+\longdivision[repeating decimal style = dots all]{2344}{7}
+\qquad\qquad\qquad
+\longdivision[repeating decimal style = overline,style=tikz]{2344}{7}
+
+\newpage
+\longdivision[repeating decimal style = parentheses,style=german]{2344}{7}
+\qquad\qquad\qquad
+\longdivision[repeating decimal style = dots,style=german]{2344}{7}
+\qquad\qquad\qquad
+\longdivision[repeating decimal style = dots all,style=german]{2344}{7}
+\qquad\qquad\qquad
+\longdivision[repeating decimal style = overline,style=german]{2344}{7}
+
+\newpage
+
+
+\longdivision[repeating decimal style = parentheses]{2344}{7}
+\qquad\qquad\qquad
+\longdivision{72344}{7}
 \qquad\qquad\qquad
 \intlongdivision{72344}{7}
+
 
 \newpage
 
