@@ -12,6 +12,8 @@
 
 
 % Core registers
+\bool_new:N \l__longdiv_mathmode_bool
+\bool_new:N \l_longdiv_repeating_decimal_bool
 \bool_new:N \l__longdiv_added_point_bool
 \bool_new:N \l__longdiv_seen_point_bool
 \bool_new:N \l__longdiv_seen_digit_bool
@@ -35,12 +37,24 @@
 \int_new:N \l__longdiv_display_divisions_int
 
 % Key-value arguments
+\cs_new:Npn \longdivisionkeys #1 { \keys_set:nn { longdivision } { #1 } }
+
+\keys_define:nn { longdivision }
+{
+    stage .int_set:N = \l__longdiv_digits_requested_int,
+    max~extra~digits .int_set:N = \l__longdiv_max_extra_digits_int,
+    unknown .code:n = {
+        %\def\temp{#1}\show\temp
+        \int_set:Nn \l__longdiv_max_extra_digits_int { \l_keys_key_tl }
+    }
+}
+
 \cs_new:Nn \longdiv_register_repeating_decimal_style_choices:n {
     \keys_define:nn { longdivision } {
         repeating~decimal~style .choices:nn =
         { #1 }
         {
-            \cs_set_eq:Nc \longdiv_linkedlist_indicate_repeating_decimal:n { longdiv_linkedlist_indicate_repeating_decimal_##1:n },
+            \cs_set_eq:Nc \longdiv_linkedlist_indicate_repeating_decimal:n { longdiv_linkedlist_indicate_repeating_decimal_##1:n }
         }
     }
 }
@@ -55,15 +69,14 @@
     }
 }
 
-\keys_define:nn { longdivision }
-{
-    stage .int_set:N = \l__longdiv_digits_requested_int,
-    max~extra~digits .int_set:N = \l__longdiv_max_extra_digits_int,
-}
-
 \longdiv_register_style_choices:n { default, standard, tikz, german }
-\longdiv_register_repeating_decimal_style_choices:n { overline, dots, dots all, parentheses, none }
+\longdiv_register_repeating_decimal_style_choices:n { overline, dots, dots~all, parentheses, none }
 
+\cs_new:Nn \longdiv_define_style:nn {
+    \cs_new:cpn { longdiv_typeset_main_ #1 :} { #2 }
+    \longdiv_register_style_choices:n { #1 }
+}
+\let \longdivdefinestyle \longdiv_define_style:nn
 
 %%
 %% The linked list
@@ -93,16 +106,12 @@
 \cs_new_eq:NN \longdiv_linkedlist_element:n \use:n
 \cs_generate_variant:Nn \longdiv_linkedlist_add:n { f }
 
-% The easy implementation of these next two commands is why I chose the "linked list" format
-
+% The easy implementation of remove_tail and the \longdiv_linkedlist_indicate_repeating_decimal commands is why I chose the "linked list" format.
 % Delete last element of list.
 \cs_new:Nn \longdiv_linkedlist_remove_tail: {
     \int_decr:N \l__longdiv_linkedlist_length_int
     \longdiv_linkedlist_set_next_do_nothing:
 }
-
-
-\cs_new:Npn \longdivisionkeys #1 { \keys_set:nn { longdivision } { #1 } }
 
 %%
 %% Entry points
@@ -114,7 +123,7 @@
     \IfNoValueF { #1 } {
         \keys_set:nn { longdivision } { #1 }
     }
-    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #2 } { #3 } }
+    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:xx { #2 } { #3 } }
     \group_end:
 }
 
@@ -125,21 +134,22 @@
         \keys_set:nn { longdivision } { #1 }
     }
     \int_set:Nn \l__longdiv_max_extra_digits_int { 0 }
-    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #2 } { #3 } }
+    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:xx { #2 } { #3 } }
     \group_end:
 }
 
 % Check input is valid then enter main loop.
-% We use etex \numexpr to ensure that the dividend has no unnecessary leading zeroes and doesn't begin with a decimal point.
+% We use \int_eval:w to ensure that the dividend has no unnecessary leading zeroes and doesn't begin with a decimal point.
 % Note that \int_eval:n wouldn't work here because it inserts a "\relax" token that would not get eaten by \numexpr if
 % #1 contains a decimal point. This "\relax" causes trouble for the division main loop.
 \cs_new:Nn \longdiv_start:nn {
     \longdiv_check_dividend:n { #1 }
     \longdiv_check_divisor:n { #2 }
     % Second copy of #1 is eaten by \longdiv_typeset:nnn to print the dividend
-    \exp_args:Nnnff \longdiv_get_new_digit:nnn { } { #2 } { \the\numexpr 0#1 } { \the\numexpr 0#1  }
+    \exp_args:Nnnff \longdiv_get_new_digit:nnn { } { #2 } { \int_eval:w 0#1 } { \int_eval:w 0#1  }
     \longdiv_break_point: { #1 } { #2 }
 }
+\cs_generate_variant:Nn \longdiv_start:nn { xx }
 
 \cs_new_eq:NN \longdiv_break_point: \use_none:nn
 
@@ -430,16 +440,16 @@
         \exp_not:n {
             \cs_set:Npn \longdiv_linkedlist_element:n ##1 { \dot ##1 }
         }
-        \ensuremath { \dot \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }
+        \ensuremath { \noexpand \dot \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }
     }
 }
 
 \cs_new:Nn \longdiv_linkedlist_indicate_repeating_decimal_dots:n {
     \cs_set:cpx { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } }{
-        \dot \use:c { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } }
+        \noexpand\dot \use:c { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } }
     }
     \cs_set:cpx { longdiv_linkedlist ~ #1 }{
-        \ensuremath { \dot \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }
+        \ensuremath { \noexpand \dot \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }
     }
 }
 
@@ -483,6 +493,12 @@
     }
     \cs_set:Npn \longdiv_typeset_work: { \longdiv_typeset_work:n { #1 } }
     \cs_set:Npn \longdiv_typeset_divisor: { \longdiv_typeset_number:n { #2 } }
+    \cs_set:Npn \longdiv_typeset_remainder: { \longdiv_typeset_number:n { #1 } } % This isn't used in current typesetting code, just could be nice to have
+    \bool_set:Nn \l_longdiv_repeating_decimal_bool { \int_compare_p:nNn \l__longdiv_repeat_digit_int > 0 } % This isn't used in current typesetting code, just could be nice to have
+    \let\longdivdividend\longdiv_typeset_dividend:
+    \let\longdivdivisor\longdiv_typeset_divisor:
+    \let\longdivquotient\longdiv_typeset_quotient:
+    \let\longdivwork\longdiv_typeset_work:
     \bool_if:NF \l__longdiv_seen_digit_bool { \longdiv_linkedlist_remove_tail: } % If we haven't seen any new digits since adding a terminal decimal point, delete it.
     \longdiv_typeset_main:
 }
@@ -503,7 +519,7 @@
 \cs_new_eq:NN \longdiv_typeset_main: \longdiv_typeset_main_default:
 
 
-\cs_new:Nn \longdiv_typeset_main_standard: {
+\longdiv_define_style:nn { standard } {
     \hskip4pt
     \rule{0pt}{22pt} \longdiv_typeset_divisor: \, \begin{tabular}[b]{@{}r@{}}
         \longdiv_typeset_quotient:\,
@@ -520,12 +536,13 @@
 \bool_new:N \l__longdiv_is_tikz_loaded_bool
 \AtBeginDocument{ \@ifpackageloaded { tikz }{ \bool_gset_true:N \l__longdiv_is_tikz_loaded_bool } { } }
 
-\cs_new:Nn \longdiv_typeset_main_german:  {
+\longdiv_define_style:nn { german } {
     \begin{tabular}[t]{@{}l@{}}
     \longdiv_typeset_dividend: \hskip1pt : \hskip1pt \longdiv_typeset_divisor: \hskip4pt = \hskip4pt \longdiv_typeset_quotient: \\
     \longdiv_typeset_work:
     \end{tabular}
 }
+
 
 \newlength{\longdiv@dividendlength}
 \newlength{\longdiv@dividendheight}
@@ -536,18 +553,19 @@
 \let\longdiv@pkgextension\@pkgextension
 \def\longdiv@ifpackageloaded{\@ifl@aded\@pkgextension}
 
-\def\longdiv_typeset_main_tikz:{
+\longdiv_define_style:nn { tikz }{
     \let\@ifl@aded\longdiv@ifl@aded
     \let\@pkgextension \longdiv@pkgextension
     \bool_if:NTF \l__longdiv_is_tikz_loaded_bool {
-        \longdiv_typeset_main_tikz_rest:
+        \longdiv@typeset@tikz@rest
     } {
         \msg_warning:nn { longdivision } { no_tikz }
         \longdiv_typeset_main_standard:
     }
 }
 
-\def\longdiv_typeset_main_tikz_rest:{
+
+\def\longdiv@typeset@tikz@rest{
     \let\longdiv@typeset@dividend\longdiv_typeset_dividend:
     \let\longdiv@typeset@divisor\longdiv_typeset_divisor:
     \let\longdiv@typeset@quotient\longdiv_typeset_quotient:

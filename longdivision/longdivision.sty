@@ -10,13 +10,81 @@
 
 \ExplSyntaxOn
 
+
+% Core registers
+\bool_new:N \l__longdiv_mathmode_bool
+\bool_new:N \l_longdiv_repeating_decimal_bool
+\bool_new:N \l__longdiv_added_point_bool
+\bool_new:N \l__longdiv_seen_point_bool
+\bool_new:N \l__longdiv_seen_digit_bool
+\bool_new:N \l__longdiv_stopped_early_stage_bool
+\int_new:N  \l__longdiv_quotient_int
+\int_new:N  \l__longdiv_position_int
+\int_new:N  \l__longdiv_point_digit_int
+\int_new:N  \l__longdiv_repeat_digit_int
+
+\dim_new:N \g__longdiv_temp_dim % For measuring the distance to the right side of digits
+
+% These are used to make sure division doesn't run off the page.
+\int_new:N  \l__longdiv_extra_digits_int
+\int_new:N  \l__longdiv_max_extra_digits_int
+\int_set:Nn \l__longdiv_max_extra_digits_int { 100 } % Infinite (just needs to be greater than max_total_digits_int and max_display_divisions_int)
+\int_new:N  \l__longdiv_digits_requested_int
+\int_set:Nn \l__longdiv_digits_requested_int { 100 } % Infinite (just needs to be greater than max_total_digits_int and max_display_divisions_int)
+
+\int_const:Nn \c__longdiv_max_total_digits_int { 60 }
+\int_const:Nn \c__longdiv_max_display_divisions_int { 20 }
+\int_new:N \l__longdiv_display_divisions_int
+
+% Key-value arguments
+\cs_new:Npn \longdivisionkeys #1 { \keys_set:nn { longdivision } { #1 } }
+
+\keys_define:nn { longdivision }
+{
+    stage .int_set:N = \l__longdiv_digits_requested_int,
+    max~extra~digits .int_set:N = \l__longdiv_max_extra_digits_int,
+    unknown .code:n = {
+        %\def\temp{#1}\show\temp
+        \int_set:Nn \l__longdiv_max_extra_digits_int { \l_keys_key_tl }
+    }
+}
+
+\cs_new:Nn \longdiv_register_repeating_decimal_style_choices:n {
+    \keys_define:nn { longdivision } {
+        repeating~decimal~style .choices:nn =
+        { #1 }
+        {
+            \cs_set_eq:Nc \longdiv_linkedlist_indicate_repeating_decimal:n { longdiv_linkedlist_indicate_repeating_decimal_##1:n }
+        }
+    }
+}
+
+\cs_new:Nn \longdiv_register_style_choices:n {
+    \keys_define:nn { longdivision } {
+        style .choices:nn =
+            { #1 }
+            {
+                \cs_set_eq:Nc \longdiv_typeset_main: { longdiv_typeset_main_##1: }
+            }
+    }
+}
+
+\longdiv_register_style_choices:n { default, standard, tikz, german }
+\longdiv_register_repeating_decimal_style_choices:n { overline, dots, dots~all, parentheses, none }
+
+\cs_new:Nn \longdiv_define_style:nn {
+    \cs_new:cpn { longdiv_typeset_main_ #1 :} { #2 }
+    \longdiv_register_style_choices:n { #1 }
+}
+\let \longdivdefinestyle \longdiv_define_style:nn
+
 %%
 %% The linked list
 %%
 
 % This token list just stores a reference to the first entry in the linked list
 \tl_new:N \l__longdiv_linkedlist_tl
-\tl_set:Nn\l__longdiv_linkedlist_tl{ \longdiv_linkedlist_next:n { 0 } }
+\tl_set:Nn\l__longdiv_linkedlist_tl { \longdiv_linkedlist_next:n { 0 } }
 \int_new:N \l__longdiv_linkedlist_length_int
 
 % Set the next entry to be a no-op so that when expanded the last "null pointer" just disappears
@@ -30,29 +98,20 @@
 
 \cs_new:Nn \longdiv_linkedlist_add:n {
     \cs_set:cpx { longdiv_linkedlist ~ \int_use:N \l__longdiv_linkedlist_length_int}{
-        \exp_not:n{#1} \exp_not:N \longdiv_linkedlist_next:n { \int_eval:n { \l__longdiv_linkedlist_length_int + 1} }
+        \exp_not:n{ \longdiv_linkedlist_element:n { #1 } } \exp_not:N \longdiv_linkedlist_next:n { \int_eval:n { \l__longdiv_linkedlist_length_int + 1} }
     }
     \int_incr:N \l__longdiv_linkedlist_length_int
     \longdiv_linkedlist_set_next_do_nothing:
 }
-\cs_generate_variant:Nn \longdiv_linkedlist_add:n {f}
+\cs_new_eq:NN \longdiv_linkedlist_element:n \use:n
+\cs_generate_variant:Nn \longdiv_linkedlist_add:n { f }
 
-% The easy implementation of these next two commands is why I chose the "linked list" format
-
+% The easy implementation of remove_tail and the \longdiv_linkedlist_indicate_repeating_decimal commands is why I chose the "linked list" format.
 % Delete last element of list.
 \cs_new:Nn \longdiv_linkedlist_remove_tail: {
     \int_decr:N \l__longdiv_linkedlist_length_int
     \longdiv_linkedlist_set_next_do_nothing:
 }
-
-% #1 -- pointer to an element of the list
-% Puts an overline over the rest of the list starting at a certain position. For "repeating decimals".
-\cs_new:Nn \longdiv_linkedlist_put_overline:n {
-    \cs_set:cpx { longdiv_linkedlist ~ #1 }{
-        $\overline { \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }$
-    }
-}
-
 
 %%
 %% Entry points
@@ -62,33 +121,37 @@
 \NewDocumentCommand \longdivision { omm } {
     \group_begin:
     \IfNoValueF { #1 } {
-        \int_set:Nn \l__longdiv_max_extra_digits_int { #1 }
+        \keys_set:nn { longdivision } { #1 }
     }
-    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #2 } { #3 } }
+    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:xx { #2 } { #3 } }
     \group_end:
 }
 
 % Same as \longdiv[0]{#1}{#2}.
-\NewDocumentCommand \intlongdivision { mm } {
+\NewDocumentCommand \intlongdivision { omm } {
     \group_begin:
+    \IfNoValueF { #1 } {
+        \keys_set:nn { longdivision } { #1 }
+    }
     \int_set:Nn \l__longdiv_max_extra_digits_int { 0 }
-    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:nn { #1 } { #2 } }
+    \tl_rescan:nn { \ExplSyntaxOn } { \longdiv_start:xx { #2 } { #3 } }
     \group_end:
 }
 
 % Check input is valid then enter main loop.
-% We use etex \numexpr to ensure that the dividend has no unnecessary leading zeroes and doesn't begin with a decimal point.
+% We use \int_eval:w to ensure that the dividend has no unnecessary leading zeroes and doesn't begin with a decimal point.
 % Note that \int_eval:n wouldn't work here because it inserts a "\relax" token that would not get eaten by \numexpr if
 % #1 contains a decimal point. This "\relax" causes trouble for the division main loop.
 \cs_new:Nn \longdiv_start:nn {
     \longdiv_check_dividend:n { #1 }
     \longdiv_check_divisor:n { #2 }
     % Second copy of #1 is eaten by \longdiv_typeset:nnn to print the dividend
-    \exp_args:Nnnff \longdiv_get_new_digit:nnn { } { #2 } { \the\numexpr 0#1 } { \the\numexpr 0#1  }
+    \exp_args:Nnnff \longdiv_get_new_digit:nnn { } { #2 } { \int_eval:w 0#1 } { \int_eval:w 0#1  }
     \longdiv_break_point: { #1 } { #2 }
 }
+\cs_generate_variant:Nn \longdiv_start:nn { xx }
 
-\cs_set_eq:NN \longdiv_break_point: \use_none:nn
+\cs_new_eq:NN \longdiv_break_point: \use_none:nn
 
 %%
 %% Input checkers
@@ -175,42 +238,24 @@
 \msg_new:nnn { longdivision } { no_division_occurred }
     { Either ~ the ~ dividend ~ was ~ zero ~ or ~ you ~ used ~ \token_to_str:N \intlongdiv \space and ~ the ~ dividend ~ was ~less ~ than ~ the ~ divisor. ~
       This ~ isn't ~ a ~ big ~ deal, ~ but ~ the ~ result ~ probably ~ looks ~ silly. }
-
+\msg_new:nnn { longdivision } { no_tikz } { You ~ requested ~ "style~=~tikz" ~ but ~ tikz ~ has ~ not ~ been ~ loaded. ~ Falling ~ back ~ to ~ "style~=~standard". }
 
 
 %%
 %% Division
 %%
 
-% Core registers
-\bool_new:N \l__longdiv_seen_point_bool
-\bool_new:N \l__longdiv_seen_digit_bool
-\int_new:N \l__longdiv_quotient_int
-\int_new:N \l__longdiv_position_int
-\int_new:N \l__longdiv_point_digit_int
-
-\tl_new:N \l__longdiv_extra_places_tl % This is for storing extra zeroes appended to the dividend
-\dim_new:N \g__longdiv_temp_dim % For measuring the distance to the right side of digits
-
-% These are used to make sure division doesn't run off the page.
-\int_new:N \l__longdiv_extra_digits_int
-\int_new:N \l__longdiv_max_extra_digits_int
-\int_set:Nn \l__longdiv_max_extra_digits_int { 100 } % Infinite (just needs to be greater than max_total_digits_int and max_display_divisions_int)
-\int_const:Nn \c__longdiv_max_total_digits_int { 60 }
-\int_const:Nn \c__longdiv_max_display_divisions_int { 20 }
-\int_new:N \l__longdiv_display_divisions_int
-
 % #1 -- remainder
 % #2 -- divisor
-% #3 -- rest of divits
+% #3 -- rest of digits of dividend
 \cs_new:Nn \longdiv_get_new_digit:nnn {
     \tl_if_empty:nTF { #3 } { % Are we out of digits?
         % If we haven't hit the decimal point add it to the quotient and dividend
         % Set seen_digit false so that we can remove the decimal point later if it divided evenly or we used \intlongdiv
         \bool_if:NF \l__longdiv_seen_point_bool {
             \longdiv_add_point: %
-            \tl_set:Nn \l__longdiv_extra_places_tl { . }
             \bool_set_false:N \l__longdiv_seen_digit_bool
+            \bool_set_true:N \l__longdiv_added_point_bool
         }
         \longdiv_divide_no_more_digits:nn { #1 } { #2 }
     }{
@@ -223,6 +268,7 @@
     \token_if_eq_meaning:NNTF #3 . {
         \longdiv_add_point:
         \bool_set_true:N \l__longdiv_seen_digit_bool % Prevent this decimal point from being removed later
+        \bool_set_false:N \l__longdiv_added_point_bool
         \longdiv_get_new_digit:nnn { #1 } { #2 } { #4 }
     }{
         \longdiv_divide:nn { #1 #3 } { #2 } { #4 }
@@ -246,21 +292,47 @@
 % #2 -- divisor
 % Finds the quotient, adds it to the linked list and to the work token list then recurses.
 \cs_new:Nn \longdiv_divide:nn {
-    %\tl_show:n{#1}
-    \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 } { #2 } }
-    \bool_if:nF {
-        \int_compare_p:nNn \l__longdiv_quotient_int = \c_zero % If the quotient was zero, we might not have to print it
-        && !\l__longdiv_seen_digit_bool % If no other digits have been printed
-        && !\l__longdiv_seen_point_bool % And we are before the decimal point
-    }{ % Otherwise print it and record that we've seen a digit (all further 0's must be printed)
-        \bool_set_true:N \l__longdiv_seen_digit_bool
-        \longdiv_linkedlist_add:f { \int_use:N \l__longdiv_quotient_int }
+    \int_compare:nNnTF \l__longdiv_position_int = \l__longdiv_digits_requested_int {
+        \longdiv_divide_end_early:nnn { #1 } { #2 }
+    }{
+        \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 } { #2 } }
+        \bool_if:nTF {
+            \int_compare_p:nNn \l__longdiv_quotient_int = \c_zero % If the quotient was zero, we might not have to print it
+            && !\l__longdiv_seen_digit_bool % If no other digits have been printed
+            && !\l__longdiv_seen_point_bool % And we are before the decimal point
+        }{
+            \int_incr:N \l__longdiv_digits_requested_int % Get an extra digit, this one doesn't count.
+        }{ % Otherwise print it and record that we've seen a digit (all further 0's must be printed)
+            \bool_set_true:N \l__longdiv_seen_digit_bool
+            \longdiv_linkedlist_add:f { \int_use:N \l__longdiv_quotient_int }
+        }
+        \int_incr:N \l__longdiv_position_int
+        \longdiv_divide_record:nn{ #1 }{ #2 }
+        \longdiv_get_new_digit:xnn { \longdiv_remainder:nn { #1 } { #2 } } { #2 }
     }
-    \int_incr:N \l__longdiv_position_int
-    \longdiv_divide_record:nn{ #1 }{ #2 }
-    \longdiv_get_new_digit:xnn { \longdiv_remainder:nn { #1 } { #2 } } { #2 }
 }
 
+\cs_generate_variant:Nn \tl_reverse:n {f}
+
+% Called if we stop early due to \l__longdiv_digits_requested_int.
+% #1 -- thing to divide
+% #2 -- divisor
+% #3 -- rest of digits of dividend
+% If we stop early, we have to pad the quotient with the extra length of the dividend
+% because the top bar of the division symbol uses the length of the quotient to determine
+% the length of the bar, but we need it to always be at least as long as the dividend.
+% Also, we need to delete the extra digit that has been carried down
+\cs_new:Nn \longdiv_divide_end_early:nnn {
+    % For some reason we need to shift the typeset work over by half a digit if we quit early due to "stage" option
+    % so we need to set a flag so that the work typesetter can know to do this.
+    \bool_set_true:N \l__longdiv_stopped_early_stage_bool
+   % \int_set:Nn \l_tmpa_int { \use:c { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } } }
+    \longdiv_linkedlist_add:n { \phantom { #3 0 } }
+    \exp_args:Nx \longdiv_typeset:nnn { \longdiv_delete_last:n { #1 } } { #2 }
+}
+
+% Deletes the last digit of number.
+\cs_new:Nn \longdiv_delete_last:n {  \tl_reverse:f { \tl_tail:f { \tl_reverse:f { #1 } } } }
 
 % Divide when we are out of digits.
 % #1 -- remainder from last time (we will add a zero to the end)
@@ -276,33 +348,34 @@
         \bool_if:nTF {
               \int_compare_p:nNn \l__longdiv_extra_digits_int = \l__longdiv_max_extra_digits_int
             ||\int_compare_p:nNn \l__longdiv_position_int = \c__longdiv_max_total_digits_int
+            ||\int_compare_p:nNn \l__longdiv_position_int = \l__longdiv_digits_requested_int
         }{
             \int_compare:nNnT \l__longdiv_position_int = \c__longdiv_max_total_digits_int {
                 \msg_warning:nn { longdivision } { division_stopped_early }
             }
-            \longdiv_typeset:nnn{#1}{#2}
+            \longdiv_typeset:nnn { #1 } { #2 }
         }{
             % Otherwise, record that we've seen this remainder and the position we're in
             % In case this is the first digit of the repeated part
             \cs_set:cpx { longdiv_remainders ~ \int_eval:n { #1 } }{ % \int_eval:n to remove leading zero
-                \exp_not:N \longdiv_linkedlist_put_overline:n { \int_use:N \l__longdiv_linkedlist_length_int }
+                \int_set:Nn \l__longdiv_repeat_digit_int { \int_use:N \l__longdiv_linkedlist_length_int }
+                \exp_not:N \longdiv_linkedlist_indicate_repeating_decimal:n { \int_use:N \l__longdiv_linkedlist_length_int }
             }
-            % Now we have to use #10 everywhere
-            \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #10 } { #2 } }
+            % Now we have to use #1 0 everywhere
+            \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 0 } { #2 } }
             \longdiv_linkedlist_add:f { \int_use:N \l__longdiv_quotient_int }
             \bool_set_true:N \l__longdiv_seen_digit_bool % We've seen a digit after the decimal point, don't need to remove it
             \int_incr:N \l__longdiv_position_int
             \int_incr:N \l__longdiv_extra_digits_int
-            \tl_set:Nx \l__longdiv_extra_places_tl { \l__longdiv_extra_places_tl 0 } % Store an extra 0 appended to the dividend
-            \longdiv_divide_record:nn{#10}{#2}
-            \longdiv_divide_no_more_digits:xn { \longdiv_remainder:nn { #10 } { #2 } } { #2 }
+            \longdiv_divide_record:nn { #1 0 } { #2 }
+            \longdiv_divide_no_more_digits:xn { \longdiv_remainder:nn { #1 0 } { #2 } } { #2 }
         }
     }
 }
-\cs_generate_variant:Nn \longdiv_divide_no_more_digits:nn {xn}
+\cs_generate_variant:Nn \longdiv_divide_no_more_digits:nn { xn }
 
 % Whenever we see the remainder 0, we're done, and we don't have to put an overline.
-\cs_set:cpn { longdiv_remainders ~ 0}{}
+\cs_new:cpn { longdiv_remainders ~ 0 }{}
 
 % This command checks if the quotient was zero, and if so preserves the leading zero by avoiding \int_eval:n
 % This is so that e.g, \longdiv{14.1}{7} doesn't screw up
@@ -318,7 +391,7 @@
 % #2 -- old remainder (thing to subtract from)
 % #3 -- quotient * divisor (thing to subtract)
 \tl_new:N \l__longdiv_work_tl
-\cs_new:Nn \longdiv_divide_record:nn{
+\cs_new:Nn \longdiv_divide_record:nn {
     \int_compare:nNnTF \l__longdiv_display_divisions_int < \c__longdiv_max_display_divisions_int {
         \int_compare:nNnF \l__longdiv_quotient_int = \c_zero { % If the quotient was zero, nothing needs to be typeset
             \tl_set:Nx \l__longdiv_work_tl {
@@ -347,26 +420,198 @@
 %%
 
 
+%% Indicate repeating decimals
+% These are all different implementations of \longdiv_linkedlist_indicate_repeating_decimal:n
+% They take one input which is the index of the start of the repeating decimal in the linked list
+
+% Chosen using "repeating decimal style", default is "dots all"
+% possible values: "overline", "dots", "dots all", "parentheses"
+
+% Put an \overline over the repeated digits. \overline only works in math mode, so we have to use \ensuremath. Then we put an \hbox
+% to take ourselves
+\cs_new:Nn \longdiv_linkedlist_indicate_repeating_decimal_overline:n {
+    \cs_set:cpx { longdiv_linkedlist ~ #1 }{
+        \ensuremath{ \overline { \bool_if:NF \l__longdiv_mathmode_bool \hbox {  \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } } } }
+    }
+}
+
+\cs_new:cn { longdiv_linkedlist_indicate_repeating_decimal_dots~all:n } {
+    \cs_set:cpx { longdiv_linkedlist ~ #1 }{
+        \exp_not:n {
+            \cs_set:Npn \longdiv_linkedlist_element:n ##1 { \dot ##1 }
+        }
+        \ensuremath { \noexpand \dot \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }
+    }
+}
+
+\cs_new:Nn \longdiv_linkedlist_indicate_repeating_decimal_dots:n {
+    \cs_set:cpx { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } }{
+        \noexpand\dot \use:c { longdiv_linkedlist ~ \int_eval:n { \l__longdiv_linkedlist_length_int - 1 } }
+    }
+    \cs_set:cpx { longdiv_linkedlist ~ #1 }{
+        \ensuremath { \noexpand \dot \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } }
+    }
+}
+
+\bool_new:N \l__longdiv_repeating_decimal_parentheses_bool
+\cs_new:Nn \longdiv_linkedlist_indicate_repeating_decimal_parentheses:n {
+    \cs_set:cpx { longdiv_linkedlist ~ #1 }{
+        ( \exp_not:f { \use:c { longdiv_linkedlist ~ #1 } } )
+    }
+    % Don't insert extra space for parenthesis in german typesetting because the quotient isn't directly above dividend and work.
+    \cs_if_eq:NNF \longdiv_typeset_main: \longdiv_typeset_main_german:{
+        \bool_set_true:N \l__longdiv_repeating_decimal_parentheses_bool
+        \cs_set:Nn \longdiv_typeset_extra_zeroes: {
+            \bool_if:NT \l__longdiv_added_point_bool { . }
+            \prg_replicate:nn { #1 - \l__longdiv_linkedlist_length_int + \l__longdiv_extra_digits_int } { 0 } \hphantom (
+            \prg_replicate:nn { \l__longdiv_position_int - #1 } { 0 } \hphantom{ ) }
+        }
+    }
+}
+
+% Do nothing, don't indicate repeating digits at all.
+\cs_new:Nn \longdiv_linkedlist_indicate_repeating_decimal_none:n {
+
+}
+
+\cs_new_eq:NN \longdiv_linkedlist_indicate_repeating_decimal:n \longdiv_linkedlist_indicate_repeating_decimal_overline:n
+
+
 % \l__longdiv_linkedlist_tl -- quotient
 % #1 -- remainder
 % #2 -- divisor
 % #3 -- dividend
 \cs_new:Nn \longdiv_typeset:nnn {
-    % If we haven't seen any new digits since adding a terminal decimal point, delete it.
-    \bool_if:NF \l__longdiv_seen_digit_bool { \longdiv_linkedlist_remove_tail: }
+    \mode_if_math:TF { \bool_set_true:N \l__longdiv_mathmode_bool } { \bool_set_false:N \l__longdiv_mathmode_bool }
+    \cs_set:Npn \longdiv_typeset_dividend: {
+        \longdiv_typeset_number:n {
+            #3
+            \bool_if:NT \l__longdiv_seen_digit_bool { % we don't want to add a trailing decimal point to the dividend if it divided evenly
+                \longdiv_typeset_extra_zeroes:
+            }
+        }
+    }
+    \cs_set:Npn \longdiv_typeset_work: { \longdiv_typeset_work:n { #1 } }
+    \cs_set:Npn \longdiv_typeset_divisor: { \longdiv_typeset_number:n { #2 } }
+    \cs_set:Npn \longdiv_typeset_remainder: { \longdiv_typeset_number:n { #1 } } % This isn't used in current typesetting code, just could be nice to have
+    \bool_set:Nn \l_longdiv_repeating_decimal_bool { \int_compare_p:nNn \l__longdiv_repeat_digit_int > 0 } % This isn't used in current typesetting code, just could be nice to have
+    \let\longdivdividend\longdiv_typeset_dividend:
+    \let\longdivdivisor\longdiv_typeset_divisor:
+    \let\longdivquotient\longdiv_typeset_quotient:
+    \let\longdivwork\longdiv_typeset_work:
+    \bool_if:NF \l__longdiv_seen_digit_bool { \longdiv_linkedlist_remove_tail: } % If we haven't seen any new digits since adding a terminal decimal point, delete it.
+    \longdiv_typeset_main:
+}
 
-    #2\,\begin{tabular}[b]{@{}r@{}}
-    \int_compare:nNnTF \l__longdiv_linkedlist_length_int = \c_zero
-        { 0 }
-        { \l__longdiv_linkedlist_tl }
-    \\\hline
-    \big)\begin{tabular}[t]{@{}l@{}}
-    % Likewise we don't want to add a trailing decimal point to the dividend if it divided evenly
-    #3 \bool_if:NT \l__longdiv_seen_digit_bool { \l__longdiv_extra_places_tl } \\
-    \longdiv_typeset_work:n { #1 }
+
+\cs_new:Nn \longdiv_typeset_extra_zeroes: {
+    \bool_if:NT \l__longdiv_added_point_bool { . }
+    \prg_replicate:nn { \l__longdiv_extra_digits_int } { 0 }
+}
+
+\cs_new:Nn \longdiv_typeset_main_default: {
+    \bool_if:NTF \l__longdiv_is_tikz_loaded_bool {
+        \longdiv_typeset_main_tikz:
+    } {
+        \longdiv_typeset_main_standard:
+    }
+}
+\cs_new_eq:NN \longdiv_typeset_main: \longdiv_typeset_main_default:
+
+
+\longdiv_define_style:nn { standard } {
+    \hskip4pt
+    \rule{0pt}{22pt} \longdiv_typeset_divisor: \, \begin{tabular}[b]{@{}r@{}}
+        \longdiv_typeset_quotient:\,
+        \\\hline
+
+    \smash{\big)}\begin{tabular}[t]{@{}l@{}}
+    \longdiv_typeset_dividend: \\
+    \longdiv_typeset_work:\\[3pt]
+    \end{tabular}\,
     \end{tabular}
+    \hskip5.3pt
+}
+
+\bool_new:N \l__longdiv_is_tikz_loaded_bool
+\AtBeginDocument{ \@ifpackageloaded { tikz }{ \bool_gset_true:N \l__longdiv_is_tikz_loaded_bool } { } }
+
+\longdiv_define_style:nn { german } {
+    \begin{tabular}[t]{@{}l@{}}
+    \longdiv_typeset_dividend: \hskip1pt : \hskip1pt \longdiv_typeset_divisor: \hskip4pt = \hskip4pt \longdiv_typeset_quotient: \\
+    \longdiv_typeset_work:
     \end{tabular}
 }
+
+
+\newlength{\longdiv@dividendlength}
+\newlength{\longdiv@dividendheight}
+\newlength{\longdiv@divisorheight}
+\newlength{\longdiv@maxheight}
+
+\let\longdiv@ifl@aded\@ifl@aded
+\let\longdiv@pkgextension\@pkgextension
+\def\longdiv@ifpackageloaded{\@ifl@aded\@pkgextension}
+
+\longdiv_define_style:nn { tikz }{
+    \let\@ifl@aded\longdiv@ifl@aded
+    \let\@pkgextension \longdiv@pkgextension
+    \bool_if:NTF \l__longdiv_is_tikz_loaded_bool {
+        \longdiv@typeset@tikz@rest
+    } {
+        \msg_warning:nn { longdivision } { no_tikz }
+        \longdiv_typeset_main_standard:
+    }
+}
+
+
+\def\longdiv@typeset@tikz@rest{
+    \let\longdiv@typeset@dividend\longdiv_typeset_dividend:
+    \let\longdiv@typeset@divisor\longdiv_typeset_divisor:
+    \let\longdiv@typeset@quotient\longdiv_typeset_quotient:
+    \let\longdiv@typeset@work\longdiv_typeset_work:
+    \settowidth{\longdiv@dividendlength}{1.\longdiv_typeset_dividend:}
+    \settoheight{\longdiv@dividendheight}{\longdiv_typeset_dividend:}
+    \settoheight{\longdiv@maxheight}{\longdiv_typeset_dividend:\longdiv_typeset_divisor:}
+    \settoheight{\longdiv@divisorheight}{\longdiv_typeset_divisor:}
+    \l__longdiv_rulethickness_dim = 0.2mm
+    \longdiv@typeset@main@tikz@helper
+}
+
+\ExplSyntaxOff
+\def\longdiv@typeset@main@tikz@helper{
+    \begin{tikzpicture} [baseline=.5pt]
+        \draw (1pt,.5*\longdiv@divisorheight)  node [left] {\longdiv@typeset@divisor};
+        \draw (\longdiv@dividendlength,.5*\longdiv@dividendheight) node [left]  {\longdiv@typeset@dividend};
+        \draw [line width=0.2mm]  (0pt,-.22*\longdiv@dividendheight) arc (-70:60:\longdiv@maxheight*.41 and \longdiv@maxheight*.88) -- ++(\longdiv@dividendlength-2pt,0pt);
+        \draw (\longdiv@dividendlength,\longdiv@divisorheight+\longdiv@maxheight*.3) node[above left] {
+            \longdiv@typeset@quotient
+        };
+        \draw (0,0) node[below right] {
+            \begin{tabular}[t]{@{}l@{}}
+            \longdiv@typeset@work
+            \end{tabular}
+        };
+    \end{tikzpicture}
+}
+\ExplSyntaxOn
+
+
+\cs_new:Nn \longdiv_typeset_quotient: {
+    \int_compare:nNnTF \l__longdiv_linkedlist_length_int = \c_zero
+        {
+            \bool_if:NTF \l__longdiv_stopped_early_stage_bool
+                { }
+                { \longdiv_typeset_number:n { 0 } }
+        }
+        { \longdiv_typeset_number:n { \l__longdiv_linkedlist_tl } }
+}
+
+
+\cs_new:Nn \longdiv_typeset_number:n {
+    \bool_if:NTF \l__longdiv_mathmode_bool { \ensuremath{#1} } { #1 }
+}
+
 
 % Iterate through the division "work" and typeset it
 \cs_new:Nn \longdiv_typeset_work:n {
@@ -411,18 +656,39 @@
 
 % #1 -- digits in to the right side of the numbers we are writing
 % #2 -- remainder from last time with new digits added to the right
-\cs_new:Npn \longdiv_typeset_work_last:nn #1 #2 {
+\cs_new:Nn \longdiv_typeset_work_last:nn {
     \longdiv_typeset_setwidth:n { #1 }
     \hspace{\g__longdiv_temp_dim}
     \llap { \longdiv_insert_point_ifneeded:nn { #1 } { #2 } }
+}
+
+% #1 -- the start position of the substring
+% #2 -- the substring
+% #3 -- the position we are checking for
+\prg_new_conditional:Nnn \longdiv_if_contains_position:nnn { TF,T,F } {
+    \bool_if:nTF {
+           \int_compare_p:nNn { #1  }                      > #3
+        && \int_compare_p:nNn { #1  - \tl_count:n { #2 } } < #3
+    }{
+        \prg_return_true:
+    }{
+        \prg_return_false:
+    }
 }
 
 % Set \g__longdiv_temp_dim equal to digitwidth * number of digits
 % If we are past the decimal point, add  \c__longdiv_pointwidth_dim
 \cs_new:Nn \longdiv_typeset_setwidth:n {
     \dim_gset:Nn \g__longdiv_temp_dim { #1\c__longdiv_digitwidth_dim }
-    \int_compare:nNnT \l__longdiv_point_digit_int < {#1} {
+    % For some reason we need to shift everything over by half a digit if we quit early due to "stage" option
+    \bool_if:NT \l__longdiv_stopped_early_stage_bool { \dim_gadd:Nn \g__longdiv_temp_dim { -0.5\c__longdiv_digitwidth_dim } }
+    \int_compare:nNnT \l__longdiv_point_digit_int < { #1 } {
         \dim_gadd:Nn \g__longdiv_temp_dim \c__longdiv_pointwidth_dim
+    }
+    \bool_if:NT \l__longdiv_repeating_decimal_parentheses_bool {
+        \int_compare:nNnT \l__longdiv_repeat_digit_int < { #1  } {
+            \dim_gadd:Nn \g__longdiv_temp_dim \c__longdiv_parenwidth_dim
+        }
     }
 }
 
@@ -430,29 +696,36 @@
 % and start before it ( #1 - length(#2) < \l__longdiv_point_digit_int) insert a
 % decimal point in the appropriate position of #2. Otherwise just return #2
 \cs_new:Nn \longdiv_insert_point_ifneeded:nn {
-    \bool_if:nTF {
-          \int_compare_p:nNn  { #1 }                      > \l__longdiv_point_digit_int
-        && \int_compare_p:nNn { #1 - \tl_count:n { #2 } } < \l__longdiv_point_digit_int
-    }{
-        \longdiv_insert_point:nn {\int_eval:n{\l__longdiv_point_digit_int - #1 + \tl_count:n { #2 }}} { #2 }
-    }{
-        #2
+    \tl_set:Nn \l_tmpa_tl { #2 }
+    \bool_if:NT \l__longdiv_repeating_decimal_parentheses_bool {
+        \longdiv_if_contains_position:nnnT { #1 } { #2 } { \l__longdiv_repeat_digit_int } {
+            \tl_set:Nx \l_tmpa_tl {
+                \exp_not:N \longdiv_insert:nff { \hskip \c__longdiv_parenwidth_dim } %)
+                                               { \int_eval:n{\l__longdiv_repeat_digit_int - #1 + \tl_count:n { #2 }} }
+                                               { \tl_use:N \l_tmpa_tl }
+            }
+        }
     }
+    \longdiv_if_contains_position:nnnT { #1 } { #2 } { \l__longdiv_point_digit_int } {
+        \tl_set:Nx \l_tmpa_tl { \longdiv_insert:nff . {\int_eval:n{\l__longdiv_point_digit_int - #1 + \tl_count:n { #2 }}} { \tl_use:N \l_tmpa_tl } }
+    }
+    \longdiv_typeset_number:n { \tl_use:N \l_tmpa_tl }
 }
 
-% Walk #1 digits across #2 and then insert a decimal point.
-\cs_new:Nn \longdiv_insert_point:nn {
-    \longdiv_insert_point_aux:oN { #1 } #2
+% Walk #2 digits across #3 and then insert #1
+\cs_new:Nn \longdiv_insert:nnn {
+    \longdiv_insert_aux:onN { #2 } { #1 } #3
 }
+\cs_generate_variant:Nn \longdiv_insert:nnn { nff }
 
-\cs_new:Nn \longdiv_insert_point_aux:nN {
+\cs_new:Nn \longdiv_insert_aux:nnN {
     \int_compare:nNnTF { #1 } = \c_zero {
-        .#2
+        #2#3
     }{
-        #2 \longdiv_insert_point_aux:oN { \int_eval:n { #1 - 1 } }
+        #3 \longdiv_insert_aux:onN { \int_eval:n { #1 - 1 } } { #2 }
     }
 }
-\cs_generate_variant:Nn \longdiv_insert_point_aux:nN {oN}
+\cs_generate_variant:Nn \longdiv_insert_aux:nnN {onN}
 
 
 % Okay, this is another section where we are adulterated with plaintex stuff.
@@ -463,21 +736,28 @@
 \settowidth \c__longdiv_digitwidth_dim { 0 }
 \newdimen   \c__longdiv_pointwidth_dim
 \settowidth \c__longdiv_pointwidth_dim { . }
+\newdimen   \c__longdiv_parenwidth_dim
+\settowidth \c__longdiv_parenwidth_dim { ( }
 \newdimen   \l__longdiv_tempwidth_dim
+\newdimen \l__longdiv_rulethickness_dim
+\l__longdiv_rulethickness_dim = 0.2mm
 
 \cs_new:Nn \longdiv_rule:nn {
     \noalign {
         \settowidth \l__longdiv_tempwidth_dim { #2 }
         % Check whether the decimal point occurred in the middle of the current number
         % because if so, it's longer by pointwidth.
-        \bool_if:nT {
-              \int_compare_p:nNn  { #1 }                      > \l__longdiv_point_digit_int
-            && \int_compare_p:nNn { #1 - \tl_count:n { #2 } } < \l__longdiv_point_digit_int
-        }{
+        \longdiv_if_contains_position:nnnT { #1 } { #2 } { \l__longdiv_point_digit_int } {
             \dim_add:Nn \l__longdiv_tempwidth_dim \c__longdiv_pointwidth_dim
         }
+        % If we use parens to denote the repeating part of the quotient, they take up space too. Test if a paren occurs.
+        \bool_if:NT \l__longdiv_repeating_decimal_parentheses_bool {
+            \longdiv_if_contains_position:nnnT { #1 } { #2 } { \l__longdiv_point_digit_int } {
+                \dim_add:Nn \l__longdiv_tempwidth_dim \c__longdiv_parenwidth_dim
+            }
+        }
         \box_move_right:nn { \g__longdiv_temp_dim - \l__longdiv_tempwidth_dim } {
-            \vbox:n { \hrule width \l__longdiv_tempwidth_dim }
+            \vbox:n { \hrule width \l__longdiv_tempwidth_dim height \l__longdiv_rulethickness_dim }
         }
     }
 }
