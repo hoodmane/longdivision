@@ -39,14 +39,33 @@
 % Key-value arguments
 \cs_new:Npn \longdivisionkeys #1 { \keys_set:nn { longdivision } { #1 } }
 
+
 \keys_define:nn { longdivision }
 {
     stage .int_set:N = \l__longdiv_digits_requested_int,
     max~extra~digits .int_set:N = \l__longdiv_max_extra_digits_int,
     unknown .code:n = {
-        %\def\temp{#1}\show\temp
-        \int_set:Nn \l__longdiv_max_extra_digits_int { \l_keys_key_tl }
+        \longdiv_if_int:nTF {\tl_use:N \l_keys_key_tl}{
+            \int_set:Nn \l__longdiv_max_extra_digits_int { \l_keys_key_tl }
+        }{
+            \unknownkeyerror % TODO: display normal error "LaTeX3 Error: The key ... is unknown and is being ignored".
+        }
+    },
+    decimal~separator .code:n = {
+        \let \longdiv_decimal_separator: #1
+        \settowidth \c__longdiv_pointwidth_dim { #1 }
     }
+}
+\let \longdiv_decimal_separator: .
+
+\newcount\longdiv@tempcount
+\cs_new:Npn \longdiv_if_int:nTF #1 {
+    \afterassignment \longdiv_checkint_aux:w
+    \longdiv@tempcount = \int_eval:w 0 #1 $$
+}
+
+\cs_new:Npn \longdiv_checkint_aux:w #1 $$ {
+    \tl_if_empty:nTF { #1 }
 }
 
 \cs_new:Nn \longdiv_register_repeating_decimal_style_choices:n {
@@ -165,7 +184,7 @@
 
 \cs_new:Nn \longdiv_check_dividend_before_point:N {
     \token_if_eq_meaning:NNF #1 \q_stop {
-        \token_if_eq_meaning:NNTF #1 . {
+        \token_if_eq_meaning:NNTF #1 \longdiv_decimal_separator: {
             \longdiv_check_dividend_seen_point:N
         }{
             \longdiv_check_dividend_isdigit:N #1
@@ -265,7 +284,7 @@
 \cs_generate_variant:Nn \longdiv_get_new_digit:nnn {xnn}
 
 \cs_new:Npn \longdiv_get_new_digit_aux:nnw #1 #2 #3 #4;{
-    \token_if_eq_meaning:NNTF #3 . {
+    \token_if_eq_meaning:NNTF #3 \longdiv_decimal_separator: {
         \longdiv_add_point:
         \bool_set_true:N \l__longdiv_seen_digit_bool % Prevent this decimal point from being removed later
         \bool_set_false:N \l__longdiv_added_point_bool
@@ -279,9 +298,9 @@
 \cs_new:Nn \longdiv_add_point: {
     \bool_set_true:N \l__longdiv_seen_point_bool
     \bool_if:NTF \l__longdiv_seen_digit_bool {
-        \longdiv_linkedlist_add:n { . }
+        \longdiv_linkedlist_add:n { \longdiv_decimal_separator: }
     }{
-        \longdiv_linkedlist_add:n { 0. } % Add a leading zero
+        \longdiv_linkedlist_add:n { 0\longdiv_decimal_separator: } % Add a leading zero
 
     }
     \int_set_eq:NN \l__longdiv_point_digit_int \l__longdiv_position_int % Record the position of the point
@@ -462,7 +481,7 @@
     \cs_if_eq:NNF \longdiv_typeset_main: \longdiv_typeset_main_german:{
         \bool_set_true:N \l__longdiv_repeating_decimal_parentheses_bool
         \cs_set:Nn \longdiv_typeset_extra_zeroes: {
-            \bool_if:NT \l__longdiv_added_point_bool { . }
+            \bool_if:NT \l__longdiv_added_point_bool { \longdiv_decimal_separator: }
             \prg_replicate:nn { #1 - \l__longdiv_linkedlist_length_int + \l__longdiv_extra_digits_int } { 0 } \hphantom (
             \prg_replicate:nn { \l__longdiv_position_int - #1 } { 0 } \hphantom{ ) }
         }
@@ -505,7 +524,7 @@
 
 
 \cs_new:Nn \longdiv_typeset_extra_zeroes: {
-    \bool_if:NT \l__longdiv_added_point_bool { . }
+    \bool_if:NT \l__longdiv_added_point_bool { \longdiv_decimal_separator: }
     \prg_replicate:nn { \l__longdiv_extra_digits_int } { 0 }
 }
 
@@ -707,7 +726,7 @@
         }
     }
     \longdiv_if_contains_position:nnnT { #1 } { #2 } { \l__longdiv_point_digit_int } {
-        \tl_set:Nx \l_tmpa_tl { \longdiv_insert:nff . {\int_eval:n{\l__longdiv_point_digit_int - #1 + \tl_count:n { #2 }}} { \tl_use:N \l_tmpa_tl } }
+        \tl_set:Nx \l_tmpa_tl { \longdiv_insert:nff \longdiv_decimal_separator: {\int_eval:n{\l__longdiv_point_digit_int - #1 + \tl_count:n { #2 }}} { \tl_use:N \l_tmpa_tl } }
     }
     \longdiv_typeset_number:n { \tl_use:N \l_tmpa_tl }
 }
