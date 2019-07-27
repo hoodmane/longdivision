@@ -510,7 +510,7 @@
             }
         }
     }
-    \cs_set:Npn \longdiv_typeset_work: { \longdiv_typeset_work:n { #1 } }
+    \cs_set:Npn \longdiv_typeset_work: {  \longdiv_typeset_work:n { #1 } }
     \cs_set:Npn \longdiv_typeset_divisor: { \longdiv_typeset_number:n { #2 } }
     \cs_set:Npn \longdiv_typeset_remainder: { \longdiv_typeset_number:n { #1 } } % This isn't used in current typesetting code, just could be nice to have
     \bool_set:Nn \l_longdiv_repeating_decimal_bool { \int_compare_p:nNn \l__longdiv_repeat_digit_int > 0 } % This isn't used in current typesetting code, just could be nice to have
@@ -711,6 +711,8 @@
     }
 }
 
+\cs_new:Nn \longdiv_work_decimal_separator: { \longdiv_decimal_separator: }
+
 % If the number ends after the decimal point ( #1 > \l__longdiv_point_digit_int )
 % and start before it ( #1 - length(#2) < \l__longdiv_point_digit_int) insert a
 % decimal point in the appropriate position of #2. Otherwise just return #2
@@ -726,7 +728,7 @@
         }
     }
     \longdiv_if_contains_position:nnnT { #1 } { #2 } { \l__longdiv_point_digit_int } {
-        \tl_set:Nx \l_tmpa_tl { \longdiv_insert:nff \longdiv_decimal_separator: {\int_eval:n{\l__longdiv_point_digit_int - #1 + \tl_count:n { #2 }}} { \tl_use:N \l_tmpa_tl } }
+        \tl_set:Nx \l_tmpa_tl { \longdiv_insert:nff \longdiv_work_decimal_separator: {\int_eval:n{\l__longdiv_point_digit_int - #1 + \tl_count:n { #2 }}} { \tl_use:N \l_tmpa_tl } }
     }
     \longdiv_typeset_number:n { \tl_use:N \l_tmpa_tl }
 }
