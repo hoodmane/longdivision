@@ -644,6 +644,14 @@
     }
 }
 
+\cs_new:Nn \longdiv_llap_preserve_math_mode:n {
+    \if_mode_math:
+        \llap{$#1$}
+    \else
+        \llap{#1}
+    \fi
+}
+
 % #1 -- digits in to the right side of the numbers we are writing
 % #2 -- remainder from last time with new digits added to the right
 % #3 -- quotient * divisor
@@ -653,7 +661,7 @@
 \cs_new:Nn \longdiv_typeset_work_first:nnn {
     \longdiv_typeset_setwidth:n { #1 }
     \hspace{\g__longdiv_temp_dim}
-    \llap { \longdiv_insert_point_ifneeded:nn { #1 } { #3 } }
+    \longdiv_llap_preserve_math_mode:n { \longdiv_insert_point_ifneeded:nn { #1 } { #3 } }
     \\\longdiv_rule:nn{#1}{#3}
     \peek_meaning:NT \bgroup {
         \longdiv_typeset_work_rest:nnn
@@ -663,10 +671,10 @@
 \cs_new:Nn \longdiv_typeset_work_rest:nnn {
     \longdiv_typeset_setwidth:n { #1 }
     \hspace{\g__longdiv_temp_dim}
-    \llap { \longdiv_insert_point_ifneeded:nn { #1 } { #2 } }
+    \longdiv_llap_preserve_math_mode:n { \longdiv_insert_point_ifneeded:nn { #1 } { #2 } }
     \\
     \hspace{\g__longdiv_temp_dim}
-    \llap { \longdiv_insert_point_ifneeded:nn { #1 } { #3 } }
+    \longdiv_llap_preserve_math_mode:n { \longdiv_insert_point_ifneeded:nn { #1 } { #3 } }
     \\\longdiv_rule:nn{#1}{#3}
     \peek_meaning:NT \bgroup {
         \longdiv_typeset_work_rest:nnn
@@ -678,7 +686,7 @@
 \cs_new:Nn \longdiv_typeset_work_last:nn {
     \longdiv_typeset_setwidth:n { #1 }
     \hspace{\g__longdiv_temp_dim}
-    \llap { \longdiv_insert_point_ifneeded:nn { #1 } { #2 } }
+    \longdiv_llap_preserve_math_mode:n { \longdiv_insert_point_ifneeded:nn { #1 } { #2 } }
 }
 
 % #1 -- the start position of the substring
@@ -711,6 +719,7 @@
     }
 }
 
+% To support Matti Vaarma's "Finnish" style.
 \cs_new:Nn \longdiv_work_decimal_separator: { \longdiv_decimal_separator: }
 
 % If the number ends after the decimal point ( #1 > \l__longdiv_point_digit_int )
