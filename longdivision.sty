@@ -219,7 +219,7 @@
     }
     % We have to do the length check before the "validity" check because the "validity" check makes an assignment
     % which throws a low level error if the number to be assigned is too large.
-    \int_compare:nNnF { \tl_count:n { #1 } } < \c_nine {
+    \int_compare:nNnF { \tl_count:n { #1 } } < 9 {
         \longdiv_error:nwnn { divisor_too_large }
     }
     % Idea here: if #1 is a valid number, \l__longdiv_temp_int = 0#1 will absorb all of it.
