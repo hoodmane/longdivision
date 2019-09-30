@@ -234,7 +234,7 @@
     \tl_if_empty:nF { #1 } {
         \longdiv_error:nwnn { divisor_invalid }
     }
-    \int_compare:nNnT \l__longdiv_temp_int = \c_zero {
+    \int_compare:nNnT \l__longdiv_temp_int = \c_zero_int {
         \longdiv_error:nwnn { divisor_zero }
     }
 }
@@ -316,7 +316,7 @@
     }{
         \int_set:Nn \l__longdiv_quotient_int { \int_div_truncate:nn { #1 } { #2 } }
         \bool_if:nTF {
-            \int_compare_p:nNn \l__longdiv_quotient_int = \c_zero % If the quotient was zero, we might not have to print it
+            \int_compare_p:nNn \l__longdiv_quotient_int = \c_zero_int % If the quotient was zero, we might not have to print it
             && !\l__longdiv_seen_digit_bool % If no other digits have been printed
             && !\l__longdiv_seen_point_bool % And we are before the decimal point
         }{
@@ -399,7 +399,7 @@
 % This command checks if the quotient was zero, and if so preserves the leading zero by avoiding \int_eval:n
 % This is so that e.g, \longdiv{14.1}{7} doesn't screw up
 \cs_new:Nn \longdiv_remainder:nn {
-    \int_compare:nNnTF \l__longdiv_quotient_int = \c_zero
+    \int_compare:nNnTF \l__longdiv_quotient_int = \c_zero_int
         { #1 }
         { \int_eval:n { #1 - \l__longdiv_quotient_int * #2 } }
 }
@@ -412,7 +412,7 @@
 \tl_new:N \l__longdiv_work_tl
 \cs_new:Nn \longdiv_divide_record:nn {
     \int_compare:nNnTF \l__longdiv_display_divisions_int < \c__longdiv_max_display_divisions_int {
-        \int_compare:nNnF \l__longdiv_quotient_int = \c_zero { % If the quotient was zero, nothing needs to be typeset
+        \int_compare:nNnF \l__longdiv_quotient_int = \c_zero_int { % If the quotient was zero, nothing needs to be typeset
             \tl_set:Nx \l__longdiv_work_tl {
                 \l__longdiv_work_tl
                     { \int_use:N \l__longdiv_position_int } { #1 } { \int_eval:n { \l__longdiv_quotient_int * #2 } }
@@ -421,7 +421,7 @@
         }
     }{
         \int_compare:nNnT \l__longdiv_display_divisions_int = \c__longdiv_max_display_divisions_int {
-            \int_compare:nNnF \l__longdiv_quotient_int = \c_zero {
+            \int_compare:nNnF \l__longdiv_quotient_int = \c_zero_int {
                 \tl_set:Nx \l__longdiv_work_tl {
                     \l__longdiv_work_tl
                         { \int_use:N \l__longdiv_position_int } { #1 } { \int_eval:n { \l__longdiv_quotient_int * #2 } }
@@ -617,7 +617,7 @@
 
 
 \cs_new:Nn \longdiv_typeset_quotient: {
-    \int_compare:nNnTF \l__longdiv_linkedlist_length_int = \c_zero
+    \int_compare:nNnTF \l__longdiv_linkedlist_length_int = \c_zero_int
         {
             \bool_if:NTF \l__longdiv_stopped_early_stage_bool
                 { }
@@ -749,7 +749,7 @@
 \cs_generate_variant:Nn \longdiv_insert:nnn { nff }
 
 \cs_new:Nn \longdiv_insert_aux:nnN {
-    \int_compare:nNnTF { #1 } = \c_zero {
+    \int_compare:nNnTF { #1 } = \c_zero_int {
         #2#3
     }{
         #3 \longdiv_insert_aux:onN { \int_eval:n { #1 - 1 } } { #2 }
