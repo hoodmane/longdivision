@@ -163,4 +163,13 @@ Control the way that repeating decimals are typeset. The options are |overline|,
 \longdivision[repeating decimal style = none       ]{5.3}{37}
 \end{tcblisting}
 \end{key}
+
+
+\begin{key}{decimal separator = \meta{separator character}}
+Control the character used to indicated the decimal point. Most people want this to be a period or a comma.
+\begin{tcblisting}{}
+\longdivision[decimal separator = {.}]{2}{3} \quad
+\longdivision[decimal separator = {,}]{2}{3}
+\end{tcblisting}
+\end{key}
 \end{document}

@@ -38,15 +38,26 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 Changelog:
 ==========
 
-## [1.1.0] (2018-10-08)
-### Fixed:
-- If the "\longdivision" command is in math mode, the numbers are typeset in math mode too (reported by Yu-Tsiang Tai).
-- The "\longdivision" command now can handle macros as arguments (as suggested by Mike Jenck).
+## [Unreleased]
+### Added:
+- A decimal separator option
 
+### Fixed:
+- Math mode usage used to be inconsistent. Now if not used in math mode, 
+  typesetting is consistently not in math mode, if used in math mode it is 
+  consistently in math mode.
+- A few deprecated expl3 commands have been replaced.
+
+
+## [1.1.0] (2018-10-08)
 ### Added:
 - Multiple typesetting styles
 - Multiple styles for indicating a repeating decimal
 - Typesetting partial long division (as suggested by Cameron McLeman).
+
+### Fixed:
+- If the "\longdivision" command is in math mode, the numbers are typeset in math mode too (reported by Yu-Tsiang Tai).
+- The "\longdivision" command now can handle macros as arguments (as suggested by Mike Jenck).
 
 
 ## [1.0.0] (2017-02-05)
