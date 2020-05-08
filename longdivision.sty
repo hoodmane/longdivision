@@ -1,4 +1,4 @@
-%% Package: longdivision.sty version 1.0
+%% Package: longdivision.sty version 2.0.1
 %% Author: Hood Chatham
 %% Email: hood@mit.edu
 %% Date: 2/5/2017
@@ -54,7 +54,15 @@
     decimal~separator .code:n = {
         \let \longdiv_decimal_separator: #1
         \settowidth \c__longdiv_pointwidth_dim { #1 }
-    }
+    },
+
+    decimal~separator~in~work .choice:,
+    decimal~separator~in~work / true .code:n = {
+        \cs_set_eq:NN \longdiv_work_decimal_separator: \longdiv_work_decimal_separator_standard:
+    },
+    decimal~separator~in~work / false .code:n = {
+        \cs_set_eq:NN \longdiv_work_decimal_separator: \longdiv_work_decimal_separator_suppressed:
+    },
 }
 \let \longdiv_decimal_separator: .
 
@@ -720,7 +728,9 @@
 }
 
 % To support Matti Vaarma's "Finnish" style.
-\cs_new:Nn \longdiv_work_decimal_separator: { \longdiv_decimal_separator: }
+\cs_new:Nn \longdiv_work_decimal_separator_standard: { \longdiv_decimal_separator: }
+\cs_new:Nn \longdiv_work_decimal_separator_suppressed: { \kern\c__longdiv_pointwidth_dim }
+\cs_new_eq:NN \longdiv_work_decimal_separator: \longdiv_work_decimal_separator_standard:
 
 % If the number ends after the decimal point ( #1 > \l__longdiv_point_digit_int )
 % and start before it ( #1 - length(#2) < \l__longdiv_point_digit_int) insert a
