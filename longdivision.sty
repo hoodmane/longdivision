@@ -1,4 +1,4 @@
-%% Package: longdivision.sty version 2.0.1
+%% Package: longdivision.sty version 1.0
 %% Author: Hood Chatham
 %% Email: hood@mit.edu
 %% Date: 2/5/2017
@@ -63,6 +63,9 @@
     decimal~separator~in~work / false .code:n = {
         \cs_set_eq:NN \longdiv_work_decimal_separator: \longdiv_work_decimal_separator_suppressed:
     },
+    german ~ division ~ sign .code:n = {
+        \cs_set:NN \longdiv_german_division_sign: { #1 }
+    }
 }
 \let \longdiv_decimal_separator: .
 
@@ -563,9 +566,11 @@
 \bool_new:N \l__longdiv_is_tikz_loaded_bool
 \AtBeginDocument{ \@ifpackageloaded { tikz }{ \bool_gset_true:N \l__longdiv_is_tikz_loaded_bool } { } }
 
+\cs_new:Nn \longdiv_german_division_sign: { : }
+
 \longdiv_define_style:nn { german } {
     \begin{tabular}[t]{@{}l@{}}
-    \longdiv_typeset_dividend: \hskip1pt : \hskip1pt \longdiv_typeset_divisor: \hskip4pt = \hskip4pt \longdiv_typeset_quotient: \\
+    \longdiv_typeset_dividend: \hskip1pt \longdiv_german_division_sign: \hskip1pt \longdiv_typeset_divisor: \hskip4pt = \hskip4pt \longdiv_typeset_quotient: \\
     \longdiv_typeset_work:
     \end{tabular}
 }
