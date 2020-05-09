@@ -49,7 +49,6 @@
 % Key-value arguments
 \cs_new:Npn \longdivisionkeys #1 { \keys_set:nn { longdivision } { #1 } }
 
-
 \keys_define:nn { longdivision }
 {
     stage .int_set:N = \l__longdiv_digits_requested_int,
@@ -64,15 +63,23 @@
     german ~ division ~ sign .code:n = {
         \cs_set:Nn \longdiv_german_division_sign: { #1 }
     },
-    decimal~separator .code:n = {
+    decimal ~ separator .code:n = {
         \cs_set:Nn \longdiv_decimal_separator: { #1 }
     },
     digit ~ separator .code:n = {
-        \cs_set:Nn \longdiv_digit_separator: { #1 }
+        \cs_if_exist_use:cF { longdiv_digit_separator ~ \detokenize{#1} }{
+            \cs_set_protected:Nn \longdiv_digit_separator: { #1 }
+        }
+        %\cs_show:N \longdiv_digit_separator:
     },
     digit ~ group ~ length .int_set:N = \l__longdiv_digit_group_length,
     separators ~ in ~ work .bool_set:N = \l__longdiv_separators_in_work_bool
 }
+
+\cs_set:cpn { longdiv_digit_separator ~ _ }{
+    \cs_set_protected:Nn \longdiv_digit_separator: { \texttt{\detokenize{_}} }
+}
+
 \cs_set:Nn \longdiv_decimal_separator: { . }
 \cs_set:Nn \longdiv_digit_separator: { }
 \bool_set_true:N \l__longdiv_separators_in_work_bool
@@ -161,10 +168,10 @@
     \tl_set:Nn \l_tmpb_tl {#2}
     \tl_remove_all:Nn \l_tmpa_tl { ~ }
     \tl_remove_all:Nn \l_tmpb_tl { ~ }
-    \tl_if_empty:oF \longdiv_digit_separator: {
-        \tl_remove_all:No \l_tmpa_tl { \longdiv_digit_separator: }
-        \tl_remove_all:No \l_tmpb_tl { \longdiv_digit_separator: }
-    }
+    % \tl_if_empty:oF \longdiv_digit_separator: {
+    %     \tl_remove_all:No \l_tmpa_tl { \longdiv_digit_separator: }
+    %     \tl_remove_all:No \l_tmpb_tl { \longdiv_digit_separator: }
+    % }
     \exp_last_unbraced:NNo \cs_set_eq:NN \longdiv_expanded_decimal_separator: \longdiv_decimal_separator:    
     \longdiv_add_leading_zero_if_necessary:N \l_tmpa_tl
 

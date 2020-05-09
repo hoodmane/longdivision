@@ -3,7 +3,6 @@
 
 \let\ifluatex\relax
 \usepackage{ifluatex}
-
 \usepackage[a4paper,left=2.25cm,right=2.25cm,top=2.5cm,bottom=2.5cm,nohead]{geometry}
 \usepackage{longdivision}
 
@@ -178,20 +177,26 @@ If you want to use the comma decimal separator, I recommend saying |\longdivisio
 
 \begin{key}{digit separator = \meta{separator character} (initially none)}
 Control the character used to separate groups of digits in the output. 
-By default digit groups have length 3, but that can be configured 
-The digit separator will also be deleted from input strings.
+By default digit groups have length 3, but that can be configured with the |digit group length| key.
+%The digit separator will also be deleted from input strings.
 If value is empty, then no separator is used.
 Most people want this to be a period or a comma. 
 Note that this changes the decimal separator BOTH in the input and in the output. If you set the decimal separator to a comma and then use a period in the input, it will throw an error.
 \begin{tcblisting}{}
+\longdivisionkeys{digit group length = 2}
 \longdivision[digit separator = {,}]{5}{7} \quad
 \longdivision[digit separator = {.}, decimal separator = {,}]{5}{7}
+\longdivision[digit separator = { }]{5}{7}
+\longdivision[digit separator = {_}]{5}{7}
 \end{tcblisting}
 \end{key}
 
-\begin{key}{}
+\begin{key}{digit group length = \meta{integer} (initially 3)}
+Specify how often to include a digit separator. Does nothing without the |digit separator| key.
 \begin{tcblisting}{}
 \longdivision[digit group length = 2, digit separator = {,}]{5}{7} \quad
+\longdivision[digit group length = 3, digit separator = { }]{5}{7} \quad
+\longdivision[digit group length = 4, digit separator = {_}]{5}{7}
 \end{tcblisting}
 \end{key}
 

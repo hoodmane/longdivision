@@ -1,11 +1,12 @@
 \documentclass{article}
 \usepackage{tikz}
 \usepackage{longdivision}
+\usepackage[T1]{fontenc}
 
 \longdivisionkeys{style=standard}
 \begin{document}
 %\tracingall
-\longdivision[max extra digits = 2]{10.0}{7}
+\longdivision[digit separator = {_}]{10}{7}
 \end{document}
 %\tracingall
 \longdivision[repeating decimal style = dots       ]{5.3}{37}
