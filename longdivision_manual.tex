@@ -1,8 +1,12 @@
 \documentclass{ltxdoc}
-\def\version{Version 2.0.0}
+\def\version{Version 2.0.1}
+
+\let\ifluatex\relax
+\usepackage{ifluatex}
 
 \usepackage[a4paper,left=2.25cm,right=2.25cm,top=2.5cm,bottom=2.5cm,nohead]{geometry}
 \usepackage{longdivision}
+
 \usepackage{tikz}
 \usepackage[documentation]{tcolorbox}
 \usepackage{etoolbox}
@@ -123,17 +127,15 @@ This key determines the maximum amount of ``extra'' zeroes to add to the end of 
 \begin{key}{stage = \meta{nonnegative integer}}
 This controls how many steps worth of division to do. Thanks to Cam McLeman for suggesting this feature.
 \begin{tcblisting}{}
-\longdivision[stage=0]{1}{7} \quad
-\longdivision[stage=1]{1}{7} \quad
-\longdivision[stage=2]{1}{7} \quad
-\longdivision[stage=3]{1}{7} \quad
-\longdivision[stage=4]{1}{7} \quad
-\longdivision[stage=5]{1}{7} \quad
-\longdivision[stage=6]{1}{7}
+\longdivision[stage=0]{5.3}{37} \quad
+\longdivision[stage=1]{5.3}{37} \quad
+\longdivision[stage=2]{5.3}{37} \quad
+\longdivision[stage=3]{5.3}{37} \quad
+\longdivision[stage=4]{5.3}{37}
 \end{tcblisting}
 \end{key}
 
-\begin{key}{style = \meta{style}}
+\begin{key}{style = \meta{style} (initially standard)}
 Control the style for typesetting the result of long division. The options are |default|, |standard|, |tikz|, or |german|. The option |default| is the same as |tikz| if \tikzname\ is loaded and otherwise is the same as |standard|. You probably should load \tikzname\ because the \tikzname\ version looks significantly better. If you use this option, you'll probably want to set the style once and for all in your preamble with |\longdivisionkeys{style=|\meta{style}|}|.
 \begin{tcblisting}{}
 \intlongdivision[style = tikz    ]{100.0}{13} \quad
@@ -153,8 +155,8 @@ You can define your own typesetting style by saying |\longdiv_define_style:nn|\m
 Send me an email if you cannot figure out how to make a style to your liking.
 \end{key}
 
-\begin{key}{repeating decimal style = \meta{style}}
-Control the way that repeating decimals are typeset. The options are |overline|, |dots|, |dots all|, |parentheses|, or |none|. The default is |overline|. The |parentheses| style creates ugly spacing problems and the |dots| style is insufficiently visible, so the |overline| style is the best. If you use this option, you'll probably want to set the style once and for all in your preamble with |\longdivisionkeys{recurring decimal style=|\meta{style}|}| |\longdivisionkeys{style=|\meta{style}|}|. Like the |style| key, this is designed to be extensible. However, the process of creating new |repeating decimal style|s is a bit involved. Send me an email if you want a new |repeating decimal style|.
+\begin{key}{repeating decimal style = \meta{style} (initially overline)}
+Control the way that repeating decimals are typeset. The options are |overline|, |dots|, |dots all|, |parentheses|, or |none|. The default is |overline|. The |parentheses| style creates ugly spacing problems and the |dots| style is insufficiently visible, so the |overline| style is the best. If you use this option, you'll probably want to set the style once and for all in your preamble with |\longdivisionkeys{recurring decimal style=|\meta{style}|}|. Like the |style| key, this is designed to be extensible. However, the process of creating new |repeating decimal style|s is a bit involved. Send me an email if you want a new |repeating decimal style|.
 \begin{tcblisting}{}
 \longdivision[repeating decimal style = overline   ]{5.3}{37} \quad
 \longdivision[repeating decimal style = dots       ]{5.3}{37} \quad
@@ -165,11 +167,47 @@ Control the way that repeating decimals are typeset. The options are |overline|,
 \end{key}
 
 
-\begin{key}{decimal separator = \meta{separator character}}
-Control the character used to indicated the decimal point. Most people want this to be a period or a comma.
+\begin{key}{decimal separator = \meta{separator character} (initially .)}
+Control the character used to indicated the decimal point. Most people want this to be a period or a comma. The default is a period. Note that this changes the decimal separator BOTH in the input and in the output. If you set the decimal separator to a comma and then use a period in the input, it will throw an error (though this could be inconvenient for people -- if this behavior causes you trouble, email me and I can fix it).
+If you want to use the comma decimal separator, I recommend saying |\longdivisionkeys{decimal separator = {,}}| in your preamble.
 \begin{tcblisting}{}
-\longdivision[decimal separator = {.}]{2}{3} \quad
-\longdivision[decimal separator = {,}]{2}{3}
+\longdivision[decimal separator = {.}]{2.1}{3} \quad
+\longdivision[decimal separator = {,}]{2,1}{3}
 \end{tcblisting}
 \end{key}
+
+\begin{key}{digit separator = \meta{separator character} (initially none)}
+Control the character used to separate groups of digits in the output. 
+By default digit groups have length 3, but that can be configured 
+The digit separator will also be deleted from input strings.
+If value is empty, then no separator is used.
+Most people want this to be a period or a comma. 
+Note that this changes the decimal separator BOTH in the input and in the output. If you set the decimal separator to a comma and then use a period in the input, it will throw an error.
+\begin{tcblisting}{}
+\longdivision[digit separator = {,}]{5}{7} \quad
+\longdivision[digit separator = {.}, decimal separator = {,}]{5}{7}
+\end{tcblisting}
+\end{key}
+
+\begin{key}{}
+\begin{tcblisting}{}
+\longdivision[digit group length = 2, digit separator = {,}]{5}{7} \quad
+\end{tcblisting}
+\end{key}
+
+\begin{key}{separators in work = \meta{bool} (initially true)}
+Specifies whether to include the decimal and digit separators in division work. When this is false, |\longdivision| will leave a space instead so that the digits are aligned correctly. \begin{tcblisting}{}
+\longdivision[separators in work = true ]{14.1}{3} \quad
+\longdivision[separators in work = false]{14.1}{3}
+\end{tcblisting}
+\end{key}
+
+\begin{key}{german division sign = \meta{division sign} (initially :)}
+\begin{tcblisting}{}
+\longdivisionkeys{style = german}
+\longdivision[german division sign = $\,\div\,$ ]{14.1}{3} \quad
+\longdivision[german division sign = :          ]{14.1}{3}
+\end{tcblisting}
+\end{key}
+
 \end{document}

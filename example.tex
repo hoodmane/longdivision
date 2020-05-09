@@ -2,9 +2,72 @@
 \usepackage{tikz}
 \usepackage{longdivision}
 
+\longdivisionkeys{style=standard}
 \begin{document}
+%\tracingall
+\longdivision[max extra digits = 2]{10.0}{7}
+\end{document}
+%\tracingall
+\longdivision[repeating decimal style = dots       ]{5.3}{37}
 
+
+%\longdivision[style=standard, ]{5.3}{37}
+\end{document}
+
+%\longdivision{1}{7} 
+\longdivision[style=standard, stage=0]{1}{7} \quad
+\longdivision[stage=1]{1}{7} \quad
+\longdivision[stage=2]{1}{7} \quad
+\longdivision[stage=3]{1}{7} \quad
+\longdivision[stage=4]{1}{7} \quad
+\longdivision[stage=5]{1}{7} \quad
+\longdivision[stage=6]{1}{7}
+\end{document}
+%\tracingall
+\longdivision[style = standard, repeating decimal style = parentheses]{2344}{7}
+
+\longdivision[style = standard]{1}{9}
+\qquad
+\longdivision[style = standard, repeating decimal style = parentheses]{1}{9}
+
+
+\longdivision[style = standard]{2344}{7}
+\qquad
+\longdivision{2344}{7}
+
+\longdivision[style = standard, repeating decimal style = parentheses]{2344}{7}
+\qquad
 \longdivision[repeating decimal style = parentheses]{2344}{7}
+\end{document}
+
+
+
+
+\longdivision[style=standard, repeating decimal style = parentheses]{1}{9}
+
+
+\longdivision[repeating decimal style = parentheses]{.2344}{7}
+
+
+
+\longdivision[repeating decimal style = parentheses]{1}{7}
+
+
+
+
+
+
+\longdivision[repeating decimal style = overline ]{6512214344}{13}
+
+\longdivision[repeating decimal style = overline ]{6512214344}{130}
+
+\longdivision[repeating decimal style = overline ]{6512214344}{1300}
+
+
+\longdivision[repeating decimal style = overline ]{6512214344}{13000} %
+
+
+\longdivision[repeating decimal style = parentheses]{.2344}{7}
 \qquad\qquad\qquad
 \longdivision[repeating decimal style = dots]{2344}{7}
 \qquad\qquad\qquad
@@ -26,18 +89,21 @@
 
 \longdivision[repeating decimal style = parentheses]{2344}{7}
 \qquad\qquad\qquad
-\longdivision{72344}{7}
+\longdivision[decimal separator in work = false]{72344}{7}
 \qquad\qquad\qquad
 \intlongdivision{72344}{7}
 
+\newpage
+\longdivision[repeating decimal style = parentheses]{1}{9}
 
 \newpage
 
-\longdivision[max-extra-digits = 20]{1}{49}
+\longdivision[max extra digits = 20]{1}{49}
 
 \longdivision{1}{49} % Warning : work_stopped_early
 
-\longdivision[max-extra-digits = 20]{1}{97}
+\end{document}
+\longdivision[max extra digits = 20]{1}{97}
 
 \longdivision{1}{97} % Warning : work_stopped_early & division_stopped_early
 

@@ -41,12 +41,13 @@ Changelog:
 ## [Unreleased]
 ### Added:
 - A decimal separator option
+- "decimal separator in work" option
 
 ### Fixed:
 - Math mode usage used to be inconsistent. Now if not used in math mode, 
   typesetting is consistently not in math mode, if used in math mode it is 
   consistently in math mode.
-- A few deprecated expl3 commands have been replaced.
+- A few deprecated expl3 commands have been replaced (.
 
 
 ## [1.1.0] (2018-10-08)
