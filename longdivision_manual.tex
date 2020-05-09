@@ -1,5 +1,5 @@
 \documentclass{ltxdoc}
-\def\version{Version 2.0.1}
+\def\version{Version 1.2.0}
 
 \let\ifluatex\relax
 \usepackage{ifluatex}
@@ -176,11 +176,11 @@ If you want to use the comma decimal separator, I recommend saying |\longdivisio
 \end{key}
 
 \begin{key}{digit separator = \meta{separator character} (initially none)}
-Control the character used to separate groups of digits in the output. 
+Control the character used to separate groups of digits in the output.
 By default digit groups have length 3, but that can be configured with the |digit group length| key.
 %The digit separator will also be deleted from input strings.
 If value is empty, then no separator is used.
-Most people want this to be a period or a comma. 
+Most people want this to be a period or a comma.
 Note that this changes the decimal separator BOTH in the input and in the output. If you set the decimal separator to a comma and then use a period in the input, it will throw an error.
 \begin{tcblisting}{}
 \longdivisionkeys{digit group length = 2}

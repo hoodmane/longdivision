@@ -1,4 +1,4 @@
-%% Package: longdivision.sty version 1.0
+%% Package: longdivision.sty version 1.2.0
 %% Author: Hood Chatham
 %% Email: hood@mit.edu
 %% Date: 2/5/2017
@@ -52,7 +52,7 @@
 \keys_define:nn { longdivision }
 {
     stage .int_set:N = \l__longdiv_digits_requested_int,
-    max~extra~digits .int_set:N = \l__longdiv_max_extra_digits_int,
+    max ~ extra ~ digits .int_set:N = \l__longdiv_max_extra_digits_int,
     unknown .code:n = {
         \longdiv_if_int:nTF {\tl_use:N \l_keys_key_tl}{
             \int_set:Nn \l__longdiv_max_extra_digits_int { \l_keys_key_tl }
@@ -99,7 +99,7 @@
 \newdimen \l__longdiv_repeating_decimal_end_dim
 \cs_new:Nn \longdiv_register_repeating_decimal_style_choices:n {
     \keys_define:nn { longdivision } {
-        repeating~decimal~style .choices:nn =
+        repeating ~ decimal ~ style .choices:nn =
         { #1 }
         {
             \cs_set_eq:Nc \longdiv_indicate_repeating_decimal:n { longdiv_indicate_repeating_decimal_##1:n }
@@ -108,7 +108,7 @@
             }
             \cs_if_exist:cT { longdiv_indicate_repeating_decimal_ ##1 _skip_end: } {
                 \cs_set_eq:Nc \longdiv_indicate_repeating_decimal_skip_end: { longdiv_indicate_repeating_decimal_ ##1 _skip_end: }
-            }            
+            }
         }
     }
 }
@@ -172,7 +172,7 @@
     %     \tl_remove_all:No \l_tmpa_tl { \longdiv_digit_separator: }
     %     \tl_remove_all:No \l_tmpb_tl { \longdiv_digit_separator: }
     % }
-    \exp_last_unbraced:NNo \cs_set_eq:NN \longdiv_expanded_decimal_separator: \longdiv_decimal_separator:    
+    \exp_last_unbraced:NNo \cs_set_eq:NN \longdiv_expanded_decimal_separator: \longdiv_decimal_separator:
     \longdiv_add_leading_zero_if_necessary:N \l_tmpa_tl
 
     \longdiv_start_i:xx
@@ -235,7 +235,7 @@
 }
 
 \prg_new_conditional:Nnn \longdiv_if_digit:n { T, F, TF, p } {
-    \bool_lazy_and:nnTF 
+    \bool_lazy_and:nnTF
         { \tl_if_single_p:n { #1 } }
         {\bool_lazy_any_p:n{
             { \token_if_eq_meaning_p:NN #1 0 }
@@ -396,7 +396,7 @@
     % so we need to set a flag so that the work typesetter can know to do this.
     \bool_set_true:N \l__longdiv_stopped_early_stage_bool
     \tl_put_right:Nn \l__longdiv_quotient_tl { {\longdiv_hphantom:n { #3 0 }} }
-    \tl_set:Nf \l__longdiv_remainer { \tl_range:nnn  { #1 } { 1 } { -2 } } 
+    \tl_set:Nf \l__longdiv_remainer { \tl_range:nnn  { #1 } { 1 } { -2 } }
     \longdiv_typeset:
 }
 
@@ -414,7 +414,7 @@
     % to insert the overline, and then typeset everything
     \cs_if_exist_use:cTF { longdiv_remainders ~ \int_eval:n { #1 } }{ % \int_eval:n to remove leading zero
         \tl_set:Nn \l__longdiv_remainder_tl { #1 }
-        \longdiv_typeset:  
+        \longdiv_typeset:
     }{
         \bool_if:nTF {
               \int_compare_p:nNn \l__longdiv_extra_digits_int = \l__longdiv_max_extra_digits_int
@@ -430,7 +430,7 @@
             % Otherwise, record that we've seen this remainder and the position we're in
             % In case this is the first digit of the repeated part
             \cs_set:cpx { longdiv_remainders ~ \int_eval:n { #1 } }{ % \int_eval:n to remove leading zero
-                \exp_not:N \int_set:Nn \exp_not:N \l__longdiv_repeat_digit_int { 
+                \exp_not:N \int_set:Nn \exp_not:N \l__longdiv_repeat_digit_int {
                     \tl_count:N \l__longdiv_quotient_tl - \int_use:N \l__longdiv_point_digit_quotient_int
                 }
             }
@@ -504,14 +504,14 @@
 % Put an \overline over the repeated digits. \overline only works in math mode, so we have to use \ensuremath. Then we put an \hbox
 % to take ourselves
 \cs_new:Nn \longdiv_indicate_repeating_decimal_overline:n {
-    \longdiv_ensuremath:n { \overline { \longdiv_return_to_original_mode:n {  
+    \longdiv_ensuremath:n { \overline { \longdiv_return_to_original_mode:n {
         #1
     } } }
 }
 
-\cs_new_protected:Nn \longdiv_dot:n { 
+\cs_new_protected:Nn \longdiv_dot:n {
     \longdiv_if_digit:nTF { #1 } {
-        \longdiv_ensuremath:n { \dot { \longdiv_return_to_original_mode:n { #1 } } } 
+        \longdiv_ensuremath:n { \dot { \longdiv_return_to_original_mode:n { #1 } } }
     }{
         #1
     }
@@ -556,7 +556,7 @@
     \cs_undefine:N \longdiv_repeat_marker:
 }
 
-\cs_new:Nn \longdiv_typeset_work: { 
+\cs_new:Nn \longdiv_typeset_work: {
     \bool_if:NTF \l__longdiv_separators_in_work_bool {
         \cs_gset_eq:NN \longdiv_decimal_separator_marker: \longdiv_decimal_separator:
         \cs_gset_eq:NN \longdiv_digit_separator_marker: \longdiv_digit_separator:
@@ -570,29 +570,29 @@
 }
 
 \cs_new:Nn \longdiv_typeset_divisor: {
-    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_divisor_tl } 
+    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_divisor_tl }
 }
 
-\cs_new:Nn \longdiv_typeset_dividend: { 
-    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_dividend_tl } 
+\cs_new:Nn \longdiv_typeset_dividend: {
+    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_dividend_tl }
 }
 
-\cs_set:Npn \longdiv_typeset_quotient: { 
-    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_quotient_tl } 
+\cs_set:Npn \longdiv_typeset_quotient: {
+    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_quotient_tl }
 }
 
 \cs_set:Npn \longdiv_typeset_remainder: {  % This isn't used in current typesetting code, just could be nice to have
-    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_remainder_tl } 
+    \longdiv_typeset_number:n { \tl_use:N \l__longdiv_remainder_tl }
 }
 
 % At this point, the divisor, dividend, quotient, and remainder should all be stored in their appropriate token lists:
-% \l__longdiv_divisor_tl 
-% \l__longdiv_dividend_tl 
-% \l__longdiv_quotient_tl 
-% \l__longdiv_remainder_tl 
+% \l__longdiv_divisor_tl
+% \l__longdiv_dividend_tl
+% \l__longdiv_quotient_tl
+% \l__longdiv_remainder_tl
 % Of course we also care about all sorts of other state...
 \cs_new:Nn \longdiv_typeset: {
-    \tl_set:Nx \l__longdiv_dividend_tl { 
+    \tl_set:Nx \l__longdiv_dividend_tl {
         \tl_use:N \l__longdiv_dividend_tl
         \bool_if:NT \l__longdiv_seen_digit_bool { % we don't want to add a trailing decimal point to the dividend if it divided evenly
             \longdiv_typeset_extra_zeroes:
@@ -601,7 +601,7 @@
 
     \mode_if_math:TF { \bool_set_true:N \l__longdiv_mathmode_bool } { \bool_set_false:N \l__longdiv_mathmode_bool }
     \bool_set:Nn \l_longdiv_repeating_decimal_bool { \int_compare_p:nNn \l__longdiv_repeat_digit_int < { 100 } }
-    
+
     \longdiv_insert_separators_into_tl:Nn \l__longdiv_divisor_tl { \tl_count:N \l__longdiv_divisor_tl }
     \longdiv_prepare_dividend:
     \longdiv_prepare_quotient:
@@ -616,7 +616,7 @@
 
 \cs_new:Nn \longdiv_prepare_quotient: {
     \longdiv_insert_separators_into_tl:Nn \l__longdiv_quotient_tl { \l__longdiv_point_digit_quotient_int }
-    \cs_set:Nn \longdiv_decimal_separator_marker: { { \longdiv_smash:n { \longdiv_decimal_separator: } } } 
+    \cs_set:Nn \longdiv_decimal_separator_marker: { { \longdiv_smash:n { \longdiv_decimal_separator: } } }
     \cs_set:Nn \longdiv_digit_separator_marker: { { \longdiv_smash:n { \longdiv_digit_separator: } } }
     \cs_set:Npn \longdiv_repeat_marker: ##1 \s_stop {
         \longdiv_indicate_repeating_decimal_quotient:n { ##1 }
@@ -628,11 +628,11 @@
 \cs_new_protected:Nn \longdiv_smash:n {  { #1 } }
 
 \cs_new:Nn \longdiv_prepare_dividend: {
-    \tl_remove_all:No \l__longdiv_dividend_tl { \longdiv_decimal_separator: }    
+    \tl_remove_all:No \l__longdiv_dividend_tl { \longdiv_decimal_separator: }
     \longdiv_insert_separators_into_tl:Nn \l__longdiv_dividend_tl { \l__longdiv_point_digit_dividend_int }
     % In the tikz output, commas seem to lift the entire number being printed.
     % There is probably some tikz baseline option that fixes this
-    \cs_set:Nn \longdiv_decimal_separator_marker: { { \longdiv_smash:n { \longdiv_decimal_separator: } } } 
+    \cs_set:Nn \longdiv_decimal_separator_marker: { { \longdiv_smash:n { \longdiv_decimal_separator: } } }
     \cs_set:Nn \longdiv_digit_separator_marker: { { \longdiv_smash:n { \longdiv_digit_separator: } } }
     \cs_set:Npn \longdiv_repeat_marker: ##1 \s_stop {
         \longdiv_indicate_repeating_decimal_dividend:n { ##1 }
@@ -669,15 +669,15 @@
 \cs_new:Nn \longdiv_insert_separators_into_tl:Nn {
     \int_set:Nn \l_tmpa_int { - \int_eval:n { #2 } + 1 }
     \tl_build_clear:N \l_tmpa_tl
-    \tl_build_put_right:Nf \l_tmpa_tl { \tl_head:N #1 }    
+    \tl_build_put_right:Nf \l_tmpa_tl { \tl_head:N #1 }
     \tl_map_inline:fn { \tl_tail:N #1 } {
 
         \int_compare:nNnTF \l_tmpa_int = 0  {
             \tl_build_put_right:Nn \l_tmpa_tl { \longdiv_decimal_separator_marker: }
         }{
             % Check if \l_tmpa_int is divisible by \l__longdiv_digit_group_length.
-            \int_compare:nNnT \l_tmpa_int = { \l_tmpa_int / \l__longdiv_digit_group_length * \l__longdiv_digit_group_length } { 
-                \tl_build_put_right:Nn \l_tmpa_tl { \longdiv_digit_separator_marker: } 
+            \int_compare:nNnT \l_tmpa_int = { \l_tmpa_int / \l__longdiv_digit_group_length * \l__longdiv_digit_group_length } {
+                \tl_build_put_right:Nn \l_tmpa_tl { \longdiv_digit_separator_marker: }
             }
         }
         \int_compare:nNnT \l_tmpa_int = \l__longdiv_repeat_digit_int {
@@ -762,14 +762,14 @@
     \settoheight{\longdiv@maxheight}{\longdivdividend\longdivdivisor}
     \settoheight{\longdiv@divisorheight}{\longdivdivisor}
     \begin{tikzpicture} [baseline=.5pt, text height=\longdiv@maxheight]
-        \draw (1pt,.5*\longdiv@divisorheight)  
+        \draw (1pt,.5*\longdiv@divisorheight)
             node [left, text depth=0pt] { \longdivdivisor };
-        \draw (\longdiv@dividendlength,.5*\longdiv@dividendheight ) 
+        \draw (\longdiv@dividendlength,.5*\longdiv@dividendheight )
             node [left, text depth=0pt] { \longdivdividend };
-        \draw [line width=0.2mm]  
-            (0pt,-.22*\longdiv@dividendheight) arc (-70:60:\longdiv@maxheight*.41 and \longdiv@maxheight*.88) 
+        \draw [line width=0.2mm]
+            (0pt,-.22*\longdiv@dividendheight) arc (-70:60:\longdiv@maxheight*.41 and \longdiv@maxheight*.88)
             -- ++(\longdiv@dividendlength-2pt, 0pt);
-        \draw (\longdiv@dividendlength,\longdiv@divisorheight+\longdiv@maxheight*.37) 
+        \draw (\longdiv@dividendlength,\longdiv@divisorheight+\longdiv@maxheight*.37)
             node[above left, text depth=0pt] { \longdivquotient };
         \draw (1pt,0) node[below right] {
             \begin{tabular}[t]{@{}l@{}}
