@@ -86,10 +86,14 @@
         \tl_use:N \l__mult_left_operand_tl * \tl_use:N \l__mult_right_operand_tl
     } }
     \tl_build_clear:N \l__mult_work_tl
+    \int_zero:N \l_tmpa_int
     \tl_map_inline:Nn \l__mult_right_operand_tl {
-        \tl_build_put_right:Nx \l__mult_work_tl {
-            { \int_eval:n { \tl_use:N \l__mult_left_operand_tl * ##1 } }
+        \int_compare:nNnF { ##1 } = { 0 } {
+            \tl_build_put_right:Nx \l__mult_work_tl {
+                { {\int_use:N \l_tmpa_int } { \int_eval:n { \tl_use:N \l__mult_left_operand_tl * ##1 } } }
+            }
         }
+        \int_incr:N \l_tmpa_int
     }
     \tl_build_end:N \l__mult_work_tl
     \int_set:Nn \l__mult_result_decimal_point_int {
@@ -145,6 +149,24 @@
 \int_new:N \l__mult_leftmost_work_digit_int
 \int_new:N \l__right_endpoint_int
 
+
+\cs_new:Nn \mult_work_map_fn:n {
+    \mult_work_map_fn_aux:nn #1
+}
+
+\cs_new:Nn \mult_work_map_fn_aux:nn {
+    \numbergrid_new_line:
+    \int_set:Nn \l_tmpb_int {
+        \l_tmpa_int - \numbergrid_count:n { #2 }
+        + #1 + 1
+    }
+    \int_compare:nNnT \l_tmpb_int < \l__mult_leftmost_work_digit_int {
+        \int_set_eq:NN \l__mult_leftmost_work_digit_int \l_tmpb_int
+    }
+    \numbergrid_set_x:n { \l_tmpb_int}
+    \numbergrid_number:n { #2 }
+}
+
 \cs_new:Nn \mult_typeset: {
     \begin{numbergrid}
     \int_set:Nn \l__right_endpoint_int {
@@ -162,16 +184,7 @@
     \numbergrid_hrule:n { \l__right_endpoint_int }
     \int_set:Nn \l_tmpa_int { \numbergrid_count:N \l__mult_left_operand_tl + 1 }
     \int_set:Nn \l__mult_leftmost_work_digit_int { 1000 }
-    \tl_map_inline:Nn \l__mult_work_tl {
-        \numbergrid_new_line:
-        \int_set:Nn \l_tmpb_int { \l_tmpa_int - \numbergrid_count:n { ##1 } + 1 }
-        \int_compare:nNnT \l_tmpb_int < \l__mult_leftmost_work_digit_int {
-            \int_set_eq:NN \l__mult_leftmost_work_digit_int \l_tmpb_int
-        }
-        \numbergrid_set_x:n { \l_tmpb_int}
-        \numbergrid_number:n { ##1 }
-        \int_incr:N \l_tmpa_int
-    }
+    \tl_map_function:NN \l__mult_work_tl \mult_work_map_fn:n
     \numbergrid_set_x:n { \l__mult_leftmost_work_digit_int }
     \numbergrid_hrule_to:n { \l__right_endpoint_int }
     \numbergrid_new_line:
