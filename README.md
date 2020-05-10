@@ -1,8 +1,8 @@
-longdivision v1.1.0
+longdivision v1.2.0
 ========================
 Author: Hood Chatham
 Email: hood@mit.edu
-Date: 2019-03-24
+Date: 2020-05-09
 Description: 
 License: All files have the Latex Project Public License.
 Files:
@@ -29,7 +29,11 @@ longdiv.tex, though I think \intlongdivision looks better, and it can handle
 much larger dividends and divisors (the dividend is only constrained by the 
 size of the page, and the divisor can be up to 8 digits long). 
 
-See the package manual for more information.
+See the package manual for more information. To compile the manual, you need 
+the file pgfmanual-en-macros.tex from the tikz manual. I am not allowed to
+include this file on the CTAN repositiory due to rules against file duplication,
+but you can find it on github: 
+https://github.com/hoodmane/longdivision/blob/master/pgfmanual-en-macros.tex
 
 Email me at hood@mit.edu to submit bug reports, request new features, etc. 
 The current development copy is hosted at https://github.com/hoodmane/longdivision. 
