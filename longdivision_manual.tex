@@ -101,7 +101,7 @@
 \date{\version\\\today}
  \maketitle
 
-The \longdivname\ package defines two main commands: |\longdivision| and |\intlongdivision|. The usage for both is |\longdivision[|\meta{options}|]|\marg{dividend}\marg{divisor}. The difference is that |\longdivision| divides until the remainders repeat or the quotient has too many digits to fit the page, whereas |\intlongdivision| does integer division and leaves the remainder. The command |\longdivisionkeys|\marg{options} is also defined to set default options. At most 20 division steps worth of work will be displayed and at most 60 digits worth of division output will be produced. Thanks to Mike Jenck, Cameron McLeman, and Yu-Tsung Tai for emailing me with bug reports and feature requests.
+The \longdivname\ package defines two main commands: |\longdivision| and |\intlongdivision|. The usage for both is |\longdivision[|\meta{options}|]|\marg{dividend}\marg{divisor}. The difference is that |\longdivision| divides until the remainders repeat or the quotient has too many digits to fit the page, whereas |\intlongdivision| does integer division and leaves the remainder. The command |\longdivisionkeys|\marg{options} is also defined to set default options. At most 20 division steps worth of work will be displayed and at most 60 digits worth of division output will be produced. Thanks to Mike Jenck, Ben McKay, Cameron McLeman, Phelype Oleinik, Maximilian Schmidt,	and Yu-Tsung Tai for bug reports and feature requests.
 
 Here is an example usage:
 
@@ -117,8 +117,8 @@ These commands have several key-value options:
 This key determines the maximum amount of ``extra'' zeroes to add to the end of the dividend in the process of division -- if the quotient has more digits before it repeats, the division will just stop. This is only an option for |\longdivision|, the command |\intlongdivision|\marg{dividend}\marg{divisor} is equivalent to |\longdivision[max extra digits=0]|\marg{dividend}\marg{divisor}. For brevity, this option has the short form where just the value is provided: |\longdivision[2]|\marg{dividend}\marg{divisor} is the same as |\longdivision[max extra digits=2]|\marg{dividend}\marg{divisor}.
 
 \begin{tcblisting}{}
-\longdivision[max extra digits = 2]{10.0}{7} \quad
-\longdivision[1]{10.0}{7}
+\longdivision[max extra digits = 1]{14.1}{7} \quad
+\longdivision[2]{14.1}{7}
 \end{tcblisting}
 \end{key}
 
@@ -141,9 +141,13 @@ Control the style for typesetting the result of long division. The options are |
 \intlongdivision[style = standard]{100.0}{13} \quad
 \intlongdivision[style = german  ]{100.0}{13}
 \end{tcblisting}
-You can define your own typesetting style by saying |\longdiv_define_style:nn|\marg{style name}\marg{code}. This can use the commands |\longdivdividend| which contains the dividend, |\longdivdivisor| which contains the divisor, |\longdivquotient| which contains the quotient, and |\longdivwork:| which contains the |division work|.  For instance, a simplified version of the |german| style is:
+You can define your own style with |\longdivisiondefinestyle|\marg{style name}\marg{code}.
+In the |\marg{code}| you can use the commands |\longdivdivisor| which contains the divisor, |\longdivdividend| which contains the dividend,
+|\longdivquotient| which contains the quotient, |\longdivwork| which contains the division work
+and |\longdivremainder| which contains the remainder.
+For instance, a simplified version of the |german| style is:
 \begin{tcblisting}{}
-\longdivdefinestyle{my style}{%
+\longdivisiondefinestyle{my style}{%
      \begin{tabular}{@{}l@{}}
     \longdivdividend  : \, \longdivdivisor \,  = \longdivquotient \\
     \longdivwork

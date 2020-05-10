@@ -38,16 +38,19 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 Changelog:
 ==========
 
-## [Unreleased]
+## [1.2.0] (2020-05-09)
 ### Added:
-- A decimal separator option
-- "decimal separator in work" option
+- An option to control the decimal separator
+- Options to specify "digit separator" and "digit group length"
+- A "separators in work" option to put spaces rather than punctuation in the work
+- Change the division sign in "german style" long division
 
 ### Fixed:
 - Math mode usage used to be inconsistent. Now if not used in math mode, 
   typesetting is consistently not in math mode, if used in math mode it is 
   consistently in math mode.
-- A few deprecated expl3 commands have been replaced (.
+- Major improvements to typesetting engine should allow changes in the future to be less painful.
+- A few deprecated expl3 commands have been replaced (thanks to a pull request from Phelype Oleinik).
 
 
 ## [1.1.0] (2018-10-08)

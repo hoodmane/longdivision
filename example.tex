@@ -5,17 +5,20 @@
 
 \longdivisionkeys{style=standard}
 \begin{document}
+
+\longdivision[, digit separator = {,}]{14.1}{7}
+
 %\tracingall
-\longdivision[digit separator = {_}]{10}{7}
-\end{document}
+\longdivision[, digit separator = {,}]{10}{7000}
+\end{document} 
 %\tracingall
-\longdivision[repeating decimal style = dots       ]{5.3}{37}
+\longdivision[repeating decimal style = dots, digit separator = {,}       ]{5.3}{37}
 
 
 %\longdivision[style=standard, ]{5.3}{37}
 \end{document}
 
-%\longdivision{1}{7} 
+%\longdivision{1}{7}
 \longdivision[style=standard, stage=0]{1}{7} \quad
 \longdivision[stage=1]{1}{7} \quad
 \longdivision[stage=2]{1}{7} \quad
