@@ -1,0 +1,186 @@
+\ProvidesPackage{german-multiplication}
+\RequirePackage{xparse}
+\RequirePackage{longdivision}
+\RequirePackage{numbergrid}
+
+\ExplSyntaxOn
+\tl_new:N \l__mult_left_operand_tl
+\tl_new:N \l__mult_right_operand_tl
+\tl_new:N \l__mult_work_tl
+\tl_new:N \l__mult_result_tl
+
+\int_new:N \l__mult_left_operand_decimal_point_int
+\int_new:N \l__mult_right_operand_decimal_point_int
+\int_new:N \l__mult_result_decimal_point_int
+
+\keys_define:nn { multiplication } {
+    stage .int_set:N = \l__multiplication_stage,
+    decimal ~ separator .code:n = {
+        \tl_if_single:nTF { #1 } {
+            \longdiv_if_digit:nTF { #1 } {
+                \msg_error:nnn { longdivision } { decimal_separator_is_digit } { #1 }
+            } {
+                \cs_set:Nn \longdiv_decimal_separator: { #1 }
+            }
+        }{
+            \msg_error:nnn { longdivision } { decimal_separator_not_single } { #1 }
+        }
+    },
+    digit ~ separator .code:n = {
+        \cs_if_exist_use:cF { longdiv_digit_separator ~ \detokenize{#1} }{
+            \cs_set_protected:Nn \longdiv_digit_separator: { #1 }
+        }
+    },
+    digit ~ group ~ length .int_set:N = \l__longdiv_digit_group_length,
+    separators ~ in ~ work .bool_set:N = \l__longdiv_separators_in_work_bool
+
+}
+
+\NewDocumentCommand \multiplication { omm } {
+    \group_begin:
+    \IfNoValueF { #1 } {
+        \keys_set:nn { multiplication } { #1 }
+    }
+    \mult_start:xx { #2 } { #3 }
+    \group_end:
+}
+
+\cs_new:Nn \mult_start:nn {
+    \longdiv_store_decimal_separator_token:
+    \tl_set:Nn \l_tmpa_tl {#1}
+    \tl_set:Nn \l_tmpb_tl {#2}
+    \tl_remove_all:Nn \l_tmpa_tl { ~ }
+    \tl_remove_all:Nn \l_tmpb_tl { ~ }
+    \mult_start_i:xx
+        { \tl_use:N \l_tmpa_tl }
+        { \tl_use:N \l_tmpb_tl }
+}
+\cs_generate_variant:Nn \mult_start:nn { xx }
+
+\cs_new:Nn \mult_start_i:nn {
+    \longdiv_if_decimal_number:nF { #1 } {
+        \mult_error:nnn { operand_invalid } { left } { #1 }
+        \mult_break:w
+    }
+    \longdiv_if_decimal_number:nF { #2 } {
+        \mult_error:nnn { operand_invalid } { right } { #2 }
+        \mult_break:w
+    }
+    \tl_set:Nn \l__mult_left_operand_tl { #1 }
+    \tl_set:Nn \l__mult_right_operand_tl { #2 }
+    \mult_main:
+    \mult_break_point:
+}
+\cs_generate_variant:Nn \mult_start_i:nn { xx }
+
+\scan_new:N \mult_break_point:
+\cs_new:Npn \mult_break:w #1 \mult_break_point: {}
+
+\cs_new:Npn \mult_error:nnn { \msg_error:nnnn { multiplication } }
+
+
+\cs_new:Nn \mult_main: {
+    \mult_locate_decimal_separator:NN \l__mult_left_operand_tl \l__mult_left_operand_decimal_point_int
+    \mult_locate_decimal_separator:NN \l__mult_right_operand_tl \l__mult_right_operand_decimal_point_int
+    \tl_set:Nx \l__mult_result_tl { \int_eval:n {
+        \tl_use:N \l__mult_left_operand_tl * \tl_use:N \l__mult_right_operand_tl
+    } }
+    \tl_build_clear:N \l__mult_work_tl
+    \tl_map_inline:Nn \l__mult_right_operand_tl {
+        \tl_build_put_right:Nx \l__mult_work_tl {
+            { \int_eval:n { \tl_use:N \l__mult_left_operand_tl * ##1 } }
+        }
+    }
+    \tl_build_end:N \l__mult_work_tl
+    \int_set:Nn \l__mult_result_decimal_point_int {
+        \tl_count:N \l__mult_result_tl - (
+            \tl_count:N \l__mult_left_operand_tl - \l__mult_left_operand_decimal_point_int
+           +\tl_count:N \l__mult_right_operand_tl - \l__mult_right_operand_decimal_point_int
+        )
+    }
+    \mult_insert_separators:Nn \l__mult_left_operand_tl { \l__mult_left_operand_decimal_point_int }
+    \mult_insert_separators:Nn \l__mult_right_operand_tl { \l__mult_right_operand_decimal_point_int }
+    \mult_insert_separators:Nn \l__mult_result_tl { \l__mult_result_decimal_point_int }
+    \mult_typeset:
+}
+
+\cs_new:Nn \mult_locate_decimal_separator:NN {
+    \int_zero:N \l_tmpa_int
+    \int_set:Nn #2 { -1 }
+    \tl_build_clear:N \l_tmpa_tl
+    \tl_map_inline:Nn #1 {
+        \longdiv_if_token_is_decimal_separator:NTF ##1 {
+            \int_set_eq:NN #2 \l_tmpa_int
+        }{
+            \int_incr:N \l_tmpa_int
+            \tl_build_put_right:Nn \l_tmpa_tl { ##1 }
+        }
+    }
+    \int_compare:nNnT #2 = { - 1 } {
+        \int_set_eq:NN #2 \l_tmpa_int
+    }
+    \tl_build_end:N \l_tmpa_tl
+    \tl_set_eq:NN #1 \l_tmpa_tl
+}
+
+\cs_new:Nn \mult_insert_separators:Nn {
+    \int_set:Nn \l_tmpa_int { - \int_eval:n { #2 } }
+    \tl_build_clear:N \l_tmpa_tl
+    \tl_build_put_right:Nf \l_tmpa_tl { \tl_head:N #1 }
+    \tl_map_inline:fn { \tl_tail:N #1 } {
+        \int_incr:N \l_tmpa_int
+        \int_compare:nNnTF \l_tmpa_int = 0  {
+            \tl_build_put_right:No \l_tmpa_tl { \longdiv_decimal_separator: }
+        }{
+            % Check if \l_tmpa_int is divisible by \l__longdiv_digit_group_length.
+            \int_compare:nNnT \l_tmpa_int = { \l_tmpa_int / \l__longdiv_digit_group_length * \l__longdiv_digit_group_length } {
+                \tl_build_put_right:No \l_tmpa_tl { \longdiv_digit_separator: }
+            }
+        }
+        \tl_build_put_right:Nn \l_tmpa_tl { ##1 }
+    }
+    \tl_build_get:NN \l_tmpa_tl #1
+}
+
+\int_new:N \l__mult_leftmost_work_digit_int
+\int_new:N \l__right_endpoint_int
+
+\cs_new:Nn \mult_typeset: {
+    \begin{numbergrid}
+    \int_set:Nn \l__right_endpoint_int {
+        \numbergrid_count:N \l__mult_left_operand_tl
+        + \numbergrid_count:N \l__mult_right_operand_tl
+        + 1
+    }
+    \numbergrid_number:N \l__mult_left_operand_tl
+    \numbergrid_op:n { \cdot }
+    \numbergrid_number:N \l__mult_right_operand_tl
+    \numbergrid_incr_x:
+    \numbergrid_op:n { = }
+    \numbergrid_number:N \l__mult_result_tl
+    \numbergrid_reset_line:
+    \numbergrid_hrule:n { \l__right_endpoint_int }
+    \int_set:Nn \l_tmpa_int { \numbergrid_count:N \l__mult_left_operand_tl + 1 }
+    \int_set:Nn \l__mult_leftmost_work_digit_int { 1000 }
+    \tl_map_inline:Nn \l__mult_work_tl {
+        \numbergrid_new_line:
+        \int_set:Nn \l_tmpb_int { \l_tmpa_int - \numbergrid_count:n { ##1 } + 1 }
+        \int_compare:nNnT \l_tmpb_int < \l__mult_leftmost_work_digit_int {
+            \int_set_eq:NN \l__mult_leftmost_work_digit_int \l_tmpb_int
+        }
+        \numbergrid_set_x:n { \l_tmpb_int}
+        \numbergrid_number:n { ##1 }
+        \int_incr:N \l_tmpa_int
+    }
+    \numbergrid_set_x:n { \l__mult_leftmost_work_digit_int }
+    \numbergrid_hrule_to:n { \l__right_endpoint_int }
+    \numbergrid_new_line:
+    \numbergrid_set_x:n { \l__right_endpoint_int - 1 }
+    \numbergrid_number_right_align:N \l__mult_result_tl
+    \end{numbergrid}
+}
+
+
+
+
+\ExplSyntaxOff

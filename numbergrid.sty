@@ -1,0 +1,234 @@
+\RequirePackage{tikz}
+\RequirePackage{xparse}
+
+
+\ExplSyntaxOn
+
+
+\int_new:N \l__numbergrid_x_int
+\int_new:N \l__numbergrid_y_int
+\dim_new:N \l__numbergrid_x_offset_dim
+\dim_new:N \l__numbergrid_y_offset_dim
+\dim_new:N \l__numbergrid_cell_width_dim
+\dim_new:N \l__numbergrid_cell_height_dim
+\dim_new:N \l__numbergrid_punct_width_dim
+
+
+\int_new:N \g__numbergrid_y_min_int
+\int_new:N \g__numbergrid_y_max_int
+
+\hbox_set:Nn \l_tmpa_box {8,}
+\dim_set:Nn \l__numbergrid_cell_height_dim { -\box_ht:N \l_tmpa_box - \box_dp:N \l_tmpa_box -
+2pt}
+\dim_set:Nn \l__numbergrid_cell_width_dim { \box_wd:N \l_tmpa_box }
+\hbox_set:Nn \l_tmpa_box {,}
+\dim_set:Nn \l__numbergrid_punct_width_dim { \box_wd:N \l_tmpa_box }
+
+
+\cs_new:Nn \numbergrid_pgftransform: {
+    \pgftransformxshift
+        { \int_use:N\l__numbergrid_x_int * \dim_use:N \l__numbergrid_cell_width_dim }
+    \pgftransformyshift
+        { \int_use:N\l__numbergrid_y_int * \dim_use:N \l__numbergrid_cell_height_dim }
+}
+
+\cs_new:Nn \numbergrid_hrule:n {
+    \group_begin:
+    \int_decr:N \l__numbergrid_x_int
+    \pgftransformyshift{-2pt}
+    \group_begin:
+    \numbergrid_pgftransform:
+    \pgftransformxshift { -1pt }
+    \pgfpathmoveto{\pgfpointorigin}
+    \group_end:
+    \group_begin:
+    \int_add:Nn \l__numbergrid_x_int { #1 }
+    \numbergrid_pgftransform:
+    \pgftransformxshift { 1pt }
+    \pgftransformxshift { - \dim_use:N \l__numbergrid_punct_width_dim }
+    \pgfpathlineto{\pgfpointorigin}
+    \group_end:
+    \pgfusepath{stroke}
+    \group_end:
+}
+
+\cs_new:Nn \numbergrid_hrule_to:n {
+    \numbergrid_hrule:n { #1 - \l__numbergrid_x_int - 1 }
+}
+
+\cs_new:Nn \numbergrid_text_offset:nnn {
+    \group_begin:
+    \numbergrid_update_bounds:
+    \numbergrid_pgftransform:
+    \pgftransformxshift{#1}
+    \pgftransformyshift{#2}
+    \pgftext[base, right]{#3}
+    \group_end:
+}
+
+\cs_new:Nn \numbergrid_update_bounds: {
+    \int_compare:nNnT \l__numbergrid_y_int < \g__numbergrid_y_min_int {
+        \int_gset_eq:NN \g__numbergrid_y_min_int \l__numbergrid_y_int
+    }
+    \int_compare:nNnT \l__numbergrid_y_int > \g__numbergrid_y_max_int {
+        \int_gset_eq:NN \g__numbergrid_y_max_int \l__numbergrid_y_int
+    }
+}
+
+\cs_new:Nn \numbergrid_symbol:n {
+    \group_begin:
+    \numbergrid_update_bounds:
+    \numbergrid_pgftransform:
+    \pgftext[base,right]{$#1$}
+    \group_end:
+    \int_incr:N \l__numbergrid_x_int
+}
+
+\cs_new:Nn \numbergrid_op:n { \numbergrid_symbol:n { #1 \skip_horizontal:n {
+0.5\l__numbergrid_cell_width_dim } }
+}
+
+\cs_new:Nn \numbergrid_digit:n {
+    \numbergrid_symbol:n { #1 \skip_horizontal:N \l__numbergrid_punct_width_dim }
+}
+
+\cs_new:Nn \numbergrid_punctuation:n {
+    \int_decr:N \l__numbergrid_x_int
+    \numbergrid_symbol:n { #1 }
+}
+
+\cs_new:Nn \numbergrid_number:N {
+    \tl_map_inline:Nn { #1 } {
+        \numbergrid_if_punctuation:NTF ##1 {
+            \numbergrid_punctuation:n { ##1 }
+        }{
+            \numbergrid_digit:n { ##1 }
+        }
+    }
+}
+
+\cs_new:Nn \numbergrid_number:n {
+    \tl_map_inline:nn { #1 } {
+        \numbergrid_if_punctuation:NTF ##1 {
+            \numbergrid_punctuation:n { ##1 }
+        }{
+            \numbergrid_digit:n { ##1 }
+        }
+    }
+}
+
+\cs_new:Nn \numbergrid_number_right_align:n {
+    \group_begin:
+    \int_add:Nn \l__numbergrid_x_int { 1 - \numbergrid_count:n { #1 } }
+    \numbergrid_number:n { #1 }
+    \group_end:
+}
+
+\cs_new:Nn \numbergrid_number_right_align:N {
+    \group_begin:
+    \int_add:Nn \l__numbergrid_x_int { 1 - \numbergrid_count:N { #1 } }
+    \numbergrid_number:N { #1 }
+    \group_end:
+}
+
+\prg_new_conditional:Nnn \numbergrid_if_punctuation:N { T, F, TF, p } {
+    \bool_lazy_any:nTF {
+        { \token_if_eq_meaning_p:NN #1 . }
+        { \token_if_eq_meaning_p:NN #1 , }
+    }
+    { \prg_return_true: }
+    { \prg_return_false: }
+}
+
+\cs_new:Nn \numbergrid_count:n {
+    \int_eval:w
+    \tl_map_function:nN { #1 } \numbergrid_count_helper:n
+    \scan_stop:
+}
+
+\cs_new:Nn \numbergrid_count:N {
+    \int_eval:w
+    \tl_map_function:NN { #1 } \numbergrid_count_helper:n
+    \scan_stop:
+}
+
+\cs_new:Nn \numbergrid_count_helper:n {
+    \numbergrid_if_punctuation:NF { #1 } {
+        + 1
+    }
+}
+
+\cs_new:Nn \numbergrid_save_position:n {
+    \cs_set:cx { numbergrid ~ saved ~ position ~ #1} {
+        \exp_not:N \int_set:Nn \exp_not:N  \l__numbergrid_x_int
+            { \int_use:N \l__numbergrid_x_int }
+        \exp_not:N \int_set:Nn \exp_not:N  \l__numbergrid_y_int
+            { \int_use:N \l__numbergrid_y_int }
+    }
+}
+
+\cs_new:Nn \numbergrid_restore_position:n {
+    \use:c { numbergrid ~ saved ~ position ~ #1 }
+}
+
+\cs_new:Nn \numbergrid_move_by:nn {
+    \int_add:Nn \l__numbergrid_x_int { #1 }
+    \int_add:Nn \l__numbergrid_y_int { #2 }
+}
+
+\cs_new:Nn \numbergrid_move_to:nn {
+    \int_set:Nn \l__numbergrid_x_int { #1 }
+    \int_set:Nn \l__numbergrid_y_int { #2 }
+}
+
+\cs_new:Nn \numbergrid_incr_x: {
+    \int_incr:N \l__numbergrid_x_int
+}
+
+\cs_new:Nn \numbergrid_set_x:n {
+    \int_set:Nn \l__numbergrid_x_int { #1 }
+}
+
+\cs_new:Nn \numbergrid_set_y:n {
+    \int_set:Nn \l__numbergrid_y_int { #1 }
+}
+
+\cs_new:Nn \numbergrid_reset_line: {
+    \int_set:Nn \l__numbergrid_x_int { 0 }
+}
+
+\cs_new:Nn \numbergrid_new_line: {
+    \int_set:Nn \l__numbergrid_x_int { 0 }
+    \int_incr:N \l__numbergrid_y_int
+}
+
+\NewDocumentCommand \numbergrid { O{} } {
+    \tikzpicture[baseline=(baselinecoord)]
+    \int_gzero:N \g__numbergrid_y_min_int
+    \int_gzero:N \g__numbergrid_y_max_int
+}
+
+\cs_new:Npn \endnumbergrid{
+    \group_begin:
+    \group_begin:
+    \numbergrid_set_y:n { \g__numbergrid_y_min_int }
+    \numbergrid_pgftransform:
+    \pgfpathmoveto{\pgfpointorigin}
+    \group_end:
+    \group_begin:
+    \numbergrid_set_y:n { \g__numbergrid_y_max_int + 1 }
+    \numbergrid_pgftransform:
+    \pgfpathlineto{\pgfpointorigin}
+    \group_end:
+    \pgfusepath{use ~ as ~ bounding ~ box}
+    \group_end:
+    \pgfmathheight{"8,"}
+    \edef\temp{\pgfmathresult}
+    \pgfcoordinate{baselinecoord}{
+        \pgfpointadd
+            {\pgfpointanchor{current~bounding~box}{north}}
+            {\pgfpoint{0pt}{-\temp pt - 0pt}}
+    }
+    \endtikzpicture
+}
+\ExplSyntaxOff

@@ -102,7 +102,7 @@
     \afterassignment \longdiv_checkint_aux:w
     % Why would I use $$ as a delimiter? Needs to be unexpandable and unlikely to show up in #1.
     % I think \relax / \scan_stop: doesn't work because \int_eval:w will absorb a relax.
-    \longdiv@tempcount = \int_eval:w 0 #1 $$ 
+    \longdiv@tempcount = \int_eval:w 0 #1 $$
 }
 
 \cs_new:Npn \longdiv_checkint_aux:w #1 $$ { % Picked up down here
@@ -128,7 +128,7 @@
 % In the annoying and ugly "parentheses" repeating decimal setting, the repeating indicators take up space.
 % \longdiv_indicate_repeating_decimal_skip_begin: and \longdiv_indicate_repeating_decimal_skip_end: are supposed to measure the amount
 % of space taken up. For all the other settings, they are just empty.
-\cs_new:Nn \longdiv_indicate_repeating_decimal_skip_begin: { } 
+\cs_new:Nn \longdiv_indicate_repeating_decimal_skip_begin: { }
 \cs_new:Nn \longdiv_indicate_repeating_decimal_skip_end: { }
 % This is a no-op except in the parentheses setting.
 \cs_new:Nn \longdiv_indicate_repeating_decimal_phantom:n { \longdiv_indicate_repeating_decimal_skip_begin: #1 \longdiv_indicate_repeating_decimal_skip_end: }
@@ -205,10 +205,14 @@
 
 \cs_generate_variant:Nn \tl_remove_all:Nn { No }
 
-\cs_new:Nn \longdiv_start:nn {
-    % We need \longdiv_decimal_separator: to be \def'd so that we can expand it for use with tl_remove_all (in prepare_dividend)
-    % but we also want to test for the decimal separator with \token_if_eq_meaning:NN (in \longdiv_if_token_is_decimal_separator:N)
+% We need \longdiv_decimal_separator: to be \def'd so that we can expand it for use with tl_remove_all (in prepare_dividend)
+% but we also want to test for the decimal separator with \token_if_eq_meaning:NN (in \longdiv_if_token_is_decimal_separator:N)
+\cs_new:Nn \longdiv_store_decimal_separator_token: {
     \exp_last_unbraced:NNo \cs_set_eq:NN \longdiv_decimal_separator_token: \longdiv_decimal_separator:
+}
+
+\cs_new:Nn \longdiv_start:nn {
+    \longdiv_store_decimal_separator_token:
     \tl_set:Nn \l_tmpa_tl {#1}
     \tl_set:Nn \l_tmpb_tl {#2}
     % Remove spaces from arguments (we used to do this by setting space to ignore and using \tl_rescan but that is a bit gauche).
@@ -240,7 +244,9 @@
 % Note that \int_eval:n wouldn't work here because it inserts a "\relax" token that would not get eaten by \numexpr if
 % #1 contains a decimal point. This "\relax" causes trouble for the division main loop.
 \cs_new:Nn \longdiv_start_i:nn {
-    \longdiv_check_dividend:n { #1 }
+    \longdiv_if_decimal_number:nF { #1 } {
+        \longdiv_error:nwnn { dividend_invalid }
+    }
     \longdiv_check_divisor:n { #2 }
     \tl_set:Nn \l__longdiv_dividend_tl { #1 }
     \tl_set:Nn \l__longdiv_divisor_tl { #2 }
@@ -266,25 +272,35 @@
 
 % Parse through the dividend token by token
 % Check that every token is a digit with the exception of at most one .
-\cs_new:Nn \longdiv_check_dividend:n {
-    \longdiv_check_dividend_before_point:N #1 \q_stop
+\prg_new_conditional:Nnn \longdiv_if_decimal_number:n { F } {
+    \longdiv_if_decimal_number_before_point:N #1 \q_stop
 }
 
-\cs_new:Nn \longdiv_check_dividend_before_point:N {
-    \token_if_eq_meaning:NNF #1 \q_stop {
+\cs_new:Nn \longdiv_if_decimal_number_before_point:N {
+    \token_if_eq_meaning:NNTF #1 \q_stop {
+        \prg_return_true:
+    }{
         \longdiv_if_token_is_decimal_separator:NTF #1 {
-            \longdiv_check_dividend_seen_point:N
+            \longdiv_if_decimal_number_seen_point:N
         }{
-            \longdiv_check_dividend_isdigit:N #1
-            \longdiv_check_dividend_before_point:N
+            \longdiv_if_digit:nF { #1 }{
+                \prg_return_false:
+                \use_none_delimit_by_q_stop:w
+            }
+            \longdiv_if_decimal_number_before_point:N
         }
     }
 }
 
-\cs_new:Nn \longdiv_check_dividend_seen_point:N {
-    \token_if_eq_meaning:NNF #1 \q_stop {
-        \longdiv_check_dividend_isdigit:N #1
-        \longdiv_check_dividend_seen_point:N
+\cs_new:Nn \longdiv_if_decimal_number_seen_point:N {
+    \token_if_eq_meaning:NNTF #1 \q_stop {
+        \prg_return_true:
+    }{
+        \longdiv_if_digit:nF { #1 }{
+            \prg_return_false:
+            \use_none_delimit_by_q_stop:w
+        }
+        \longdiv_if_decimal_number_seen_point:N
     }
 }
 
@@ -305,12 +321,6 @@
         }}
         { \prg_return_true: }
         { \prg_return_false: }
-}
-
-\cs_new:Nn \longdiv_check_dividend_isdigit:N {
-    \longdiv_if_digit:nF #1 {
-        \longdiv_error:nwnn { dividend_invalid }
-    }
 }
 
 % Check that there is no ., that it is at most 8 digits, and that the entire argument can get assigned to a count variable
@@ -541,7 +551,7 @@
 % Chosen using "repeating decimal style", default is "overline"
 % possible values: "overline", "dots", "dots all", "parentheses"
 
-% Put an \overline over the repeated digits. \overline only works in math mode, so we have to use \ensuremath. 
+% Put an \overline over the repeated digits. \overline only works in math mode, so we have to use \ensuremath.
 % \longdiv_return_to_original_mode:n restores text mode by wrapping in an hbox if necessary.
 % We stored the top level mode at the beginning of \longdiv_typeset:
 \cs_new:Nn \longdiv_indicate_repeating_decimal_overline:n {
@@ -551,9 +561,9 @@
 }
 
 \cs_new_protected:Nn \longdiv_dot:n {
-    % In the dotsall case, we use this on every digit in range, but we don't want to put dots over the 
+    % In the dotsall case, we use this on every digit in range, but we don't want to put dots over the
     % punctuation so we test for it.
-    \longdiv_if_digit:nTF { #1 } { 
+    \longdiv_if_digit:nTF { #1 } {
         \longdiv_ensuremath:n { \dot { \longdiv_return_to_original_mode:n { #1 } } }
     }{
         #1
@@ -568,9 +578,9 @@
 % Put a dot over the first and last entry of the token list leaving the rest alone
 \cs_new:Nn \longdiv_indicate_repeating_decimal_dots:n {
     \longdiv_dot:n { \tl_head:n { #1 } }
-    % tl_range wraps it's output in an \exp_not:n which we cancel out with this \expanded 
+    % tl_range wraps it's output in an \exp_not:n which we cancel out with this \expanded
     % (I guess in expl3 this is \use:e)
-    \expanded { \tl_range:nnn { #1 } { 2 } { -2 } } 
+    \expanded { \tl_range:nnn { #1 } { 2 } { -2 } }
     \longdiv_dot:n { \tl_item:nn { #1 } { -1 } }
 }
 
@@ -598,7 +608,7 @@
 
 % The three markers are inserted by \longdiv_insert_separators:Nn into quotient, dividend, and work.
 % We give them various definitions in the three contexts depending on how we do the formatting.
-% typeset_work is typically happening inside of a tabular where each row is in a separate local context, 
+% typeset_work is typically happening inside of a tabular where each row is in a separate local context,
 % so we need to make definitions global for that case. For sanitation purposes, we get rid of the defintions
 % as soon as we are done with them.
 \cs_new:Nn \longdiv_undefine_markers: {
@@ -608,7 +618,7 @@
 }
 
 \cs_new:Nn \longdiv_typeset_work: {
-    \bool_if:NTF \l__longdiv_separators_in_work_bool { % This is the "separators in work" option. 
+    \bool_if:NTF \l__longdiv_separators_in_work_bool { % This is the "separators in work" option.
         \cs_gset:Nn \longdiv_decimal_separator_marker: { \longdiv_decimal_separator: } % If true print the separators
         \cs_gset:Nn \longdiv_digit_separator_marker: { \longdiv_digit_separator: }
     }{
@@ -639,7 +649,7 @@
 }
 
 % This isn't used in current typesetting code, but could be nice to have for integer division for instance
-\cs_set:Npn \longdiv_typeset_remainder: {  
+\cs_set:Npn \longdiv_typeset_remainder: {
     \longdiv_typeset_number:n { \tl_use:N \l__longdiv_remainder_tl }
 }
 
@@ -679,9 +689,9 @@
     \tl_set:Nx \l__longdiv_dividend_tl {
         \tl_use:N \l__longdiv_dividend_tl
         % Pad dividend with extra zeroes as needed
-        \prg_replicate:nn { \l__longdiv_extra_digits_int } { 0 } 
+        \prg_replicate:nn { \l__longdiv_extra_digits_int } { 0 }
     }
-    % Get rid of decimal separator if present (it gets added back in by insert_separators)    
+    % Get rid of decimal separator if present (it gets added back in by insert_separators)
     \tl_remove_all:No \l__longdiv_dividend_tl { \longdiv_decimal_separator: }
     \longdiv_insert_separators:Nn \l__longdiv_dividend_tl { \l__longdiv_point_digit_dividend_int }
     \cs_set:Nn \longdiv_decimal_separator_marker: { \longdiv_decimal_separator: }
@@ -751,10 +761,10 @@
 % #2 -- how many digits of the current number come before the decimal point
 % We iterate over the current token list, making a new one with punctuation inserted.
 % We use a coordinate system where the digit directly AFTER the decimal point is digit 0,
-% the digit directly before the decimal point is digit -1, etc. 
-% This coordinate system is obviously useful for digit separators which occur based on their position 
+% the digit directly before the decimal point is digit -1, etc.
+% This coordinate system is obviously useful for digit separators which occur based on their position
 % relative to the decimal point.
-% We set up \l__longdiv_repeat_digit_int so that it is already in these coordinates. 
+% We set up \l__longdiv_repeat_digit_int so that it is already in these coordinates.
 % Any additional decorations that need to be added in the future should use coordiantes relative to the decimal point too.
 \cs_new:Nn \longdiv_insert_separators:Nn {
     \int_set:Nn \l_tmpa_int { - \int_eval:n { #2 } }
@@ -808,7 +818,7 @@
     \tl_gset:Nf \g__longdiv_work_line_tl { #3 }
     \longdiv_work_insert_separators:Nn { \g__longdiv_work_line_tl } { #1 }
     % We need the definition to be global to make it past the \\.
-    % Best practice would be to feed in a local variable to insert_separators, but insert_separators 
+    % Best practice would be to feed in a local variable to insert_separators, but insert_separators
     % already uses \l_tmpa_tl and \l_tmb_tl for its own purposes. It would anyways be more error prone to do it that way.
     \tl_gset_eq:NN \g__longdiv_work_line_tl \g__longdiv_work_line_tl % Globalize definition from insert_separators
     \longdiv_llap_preserve_math_mode:n { \longdiv_typeset_number:n { \g__longdiv_work_line_tl } }
@@ -857,7 +867,7 @@
     \bool_if:NT \l__longdiv_stopped_early_stage_bool {\dim_gadd:Nn \g__longdiv_temp_dim { -0.5\c__longdiv_digitwidth_dim } }
 }
 
-% #2 is the distance to the right endpoint of the token list #1. 
+% #2 is the distance to the right endpoint of the token list #1.
 % The distance to decimal point is (point_digit_divident  - distance to left endpoint of #1)
 \cs_new:Nn \longdiv_work_insert_separators:Nn {
     \longdiv_insert_separators:Nn #1 { \l__longdiv_point_digit_dividend_int  + \tl_count:N #1 - #2  }
@@ -937,7 +947,7 @@
 }
 
 
-% Certainly the pretiest of my three styles. I think I got it from a tex stack exchange post, 
+% Certainly the pretiest of my three styles. I think I got it from a tex stack exchange post,
 % but I apparently didn't credit it when I copied it and I cannot find teh post now.
 \longdiv_define_style:nn { tikz }{
     \bool_if:NTF \l__longdiv_is_tikz_loaded_bool {
