@@ -3,7 +3,13 @@
 *.html
 *.prj
 *.bak
+*.bbl
+*.blg
+*.dvi
+*.listing
+*.out
 *.aux
 *.log
 *.synctex
 *(busy)
+longdivision
