@@ -17,7 +17,6 @@
 \bool_new:N \l__longdiv_added_point_bool
 \bool_new:N \l__longdiv_seen_point_bool
 \bool_new:N \l__longdiv_seen_digit_bool
-\bool_new:N \l__longdiv_stopped_early_stage_bool
 \int_new:N  \l__longdiv_quotient_int
 \int_new:N  \l__longdiv_position_int
 \int_new:N  \l__longdiv_point_digit_dividend_int
@@ -437,11 +436,8 @@
 % the length of the bar, but we need it to always be at least as long as the dividend.
 % Also, we need to delete the extra digit that has been carried down
 \cs_new:Nn \longdiv_divide_end_early:nnn {
-    % For some reason we need to shift the typeset work over by half a digit if we quit early due to "stage" option
-    % so we need to set a flag so that the work typesetter can know to do this.
-    \bool_set_true:N \l__longdiv_stopped_early_stage_bool
     \tl_put_right:Nn \l__longdiv_quotient_tl { {\longdiv_hphantom:n { #3 0 }} }
-    \tl_set:Nf \l__longdiv_remainer { \tl_range:nnn  { #1 } { 1 } { -2 } }
+    \tl_set:Nf \l__longdiv_remainder_tl { \tl_range:nnn  { #1 } { 1 } { -2 } }
     \longdiv_typeset:
 }
 
@@ -863,8 +859,6 @@
 \cs_new:Nn \longdiv_typeset_setwidth:n {
     \settowidth \l__longdiv_tempwidth_dim {\tl_range:Nnn \l__longdiv_dividend_tl { 1 } { #1 } \relax }
     \dim_gset:Nn \g__longdiv_temp_dim { \l__longdiv_tempwidth_dim }
-    % For some reason we need to shift everything over by half a digit if we quit early due to "stage" option
-    \bool_if:NT \l__longdiv_stopped_early_stage_bool {\dim_gadd:Nn \g__longdiv_temp_dim { -0.5\c__longdiv_digitwidth_dim } }
 }
 
 % #2 is the distance to the right endpoint of the token list #1.
@@ -947,7 +941,7 @@
 }
 
 
-% Stolen from the following tex stack exchange answer: https://tex.stackexchange.com/a/131137 
+% Stolen from the following tex stack exchange answer: https://tex.stackexchange.com/a/131137
 \longdiv_define_style:nn { tikz }{
     \bool_if:NTF \l__longdiv_is_tikz_loaded_bool {
         \longdiv@typeset@main@tikz
