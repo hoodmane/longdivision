@@ -41,6 +41,9 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 
 Changelog:
 ==========
+## [1.2.1](2021-07-17)
+### Fixed:
+- The stage option works again.
 
 ## [1.2.0] (2020-05-09)
 ### Added:
