@@ -1,4 +1,4 @@
-longdivision v1.2.0
+longdivision v1.2.1
 ========================
 Author: Hood Chatham
 Email: hood@mit.edu
