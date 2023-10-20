@@ -41,6 +41,11 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 
 Changelog:
 ==========
+## Unreleased
+### Fixed:
+- The decimal separator no longer goes missing when the "stage" is set to a low
+  enough number that digits after the decimal separator are not inspected.
+
 ## [1.2.1](2021-07-17)
 ### Fixed:
 - The stage option works again.

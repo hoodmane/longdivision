@@ -243,6 +243,8 @@
 % Note that \int_eval:n wouldn't work here because it inserts a "\relax" token that would not get eaten by \numexpr if
 % #1 contains a decimal point. This "\relax" causes trouble for the division main loop.
 \cs_new:Nn \longdiv_start_i:nn {
+    % As a side effect, longdiv_if_decimal_number locates the decimal point.
+    % This is used by \longdiv_insert_separators
     \longdiv_if_decimal_number:nF { #1 } {
         \longdiv_error:nwnn { dividend_invalid }
     }
@@ -269,9 +271,12 @@
 }
 
 
-% Parse through the dividend token by token
-% Check that every token is a digit with the exception of at most one .
+% Parse through the dividend token by token Check that every token is a digit
+% with the exception of at most one . While we're at it, record the location of
+% the decimal separator. Note that this odd side effect means if we used it more
+% than once we'd have to rearrange this.
 \prg_new_conditional:Nnn \longdiv_if_decimal_number:n { F } {
+    \int_set_eq:NN \l__longdiv_point_digit_dividend_int { 0 }
     \longdiv_if_decimal_number_before_point:N #1 \q_stop
 }
 
@@ -282,6 +287,8 @@
         \longdiv_if_token_is_decimal_separator:NTF #1 {
             \longdiv_if_decimal_number_seen_point:N
         }{
+            % Saw another digit before decimal separator
+            \int_incr:N \l__longdiv_point_digit_dividend_int
             \longdiv_if_digit:nF { #1 }{
                 \prg_return_false:
                 \use_none_delimit_by_q_stop:w
@@ -395,7 +402,6 @@
     \bool_if:NF \l__longdiv_seen_digit_bool {
         \tl_put_right:Nn \l__longdiv_quotient_tl { 0 } % Add a leading zero
     }
-    \int_set_eq:NN \l__longdiv_point_digit_dividend_int { \l__longdiv_position_int } % Record the position of the point
     \bool_set_true:N \l__longdiv_seen_point_bool
     \int_set:Nn \l__longdiv_point_digit_quotient_int { \tl_count:N \l__longdiv_quotient_tl }
 }
