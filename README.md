@@ -1,8 +1,8 @@
-longdivision v1.2.1
+longdivision v1.2.2
 ========================
 Author: Hood Chatham
 Email: hood@mit.edu
-Date: 2020-05-09
+Date: 2023-10-21
 Description: 
 License: All files have the Latex Project Public License.
 Files:
@@ -41,7 +41,7 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 
 Changelog:
 ==========
-## Unreleased
+## [1.2.1](2023-10-21)
 ### Fixed:
 - The decimal separator no longer goes missing when the "stage" is set to a low
   enough number that digits after the decimal separator are not inspected.
