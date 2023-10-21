@@ -957,6 +957,20 @@
     }
 }
 
+% Credit Felipe-Math
+% https://github.com/hoodmane/longdivision/issues/9
+\longdiv_define_style:nn { brazilian } {
+    \begingroup
+    \def\arraystretch{1.1}
+    \begin{tabular}{@{}ll}
+        \longdivdividend & \multicolumn{1}{|l}{\longdivdivisor}\\\cline{2-2}
+        & \longdivquotient\\[-\arraystretch\baselineskip]
+        \longdivwork &
+    \end{tabular}%
+    \endgroup
+}
+
+
 \bool_new:N \l__longdiv_is_tikz_loaded_bool
 \AtBeginDocument{ \@ifpackageloaded { tikz }{ \bool_gset_true:N \l__longdiv_is_tikz_loaded_bool } { } }
 

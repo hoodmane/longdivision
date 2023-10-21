@@ -45,6 +45,7 @@ Changelog:
 ### Fixed:
 - The decimal separator no longer goes missing when the "stage" is set to a low
   enough number that digits after the decimal separator are not inspected.
+- Added "brazilian" style (contributed by gh-user Felipe-Math)
 
 ## [1.2.1](2021-07-17)
 ### Fixed:
