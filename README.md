@@ -41,11 +41,20 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 
 Changelog:
 ==========
-## [1.2.1](2023-10-21)
+## [Unreleased]
+### Added:
+- Added an option to show division work even when the quotient is zero. It won't
+  show division work for unwritten leading zeroes. E.g., in 100/11, the integer
+  quotient is 9 not 09 and the work for this leading 0 won't be shown. Likewise,
+  10/11 = 0.99 and the work for the zero before the decimal point won't be
+  shown. However, in 110/11 = 10 work is shown for the 0.
+
+## [1.2.2](2023-10-21)
+### Added:
+- Added "brazilian" style (contributed by gh-user Felipe-Math)
 ### Fixed:
 - The decimal separator no longer goes missing when the "stage" is set to a low
   enough number that digits after the decimal separator are not inspected.
-- Added "brazilian" style (contributed by gh-user Felipe-Math)
 
 ## [1.2.1](2021-07-17)
 ### Fixed:

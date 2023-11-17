@@ -1,7 +1,7 @@
 %% Package: longdivision.sty version 1.2.2
 %% Author: Hood Chatham
 %% Email: hood@mit.edu
-%% Date: 2023-10-21
+%% Date: 2023-11-16
 %% License: Latex Project Public License
 
 
@@ -81,7 +81,8 @@
         }
     },
     digit ~ group ~ length .int_set:N = \l__longdiv_digit_group_length,
-    separators ~ in ~ work .bool_set:N = \l__longdiv_separators_in_work_bool
+    separators ~ in ~ work .bool_set:N = \l__longdiv_separators_in_work_bool,
+    show ~ work ~ for ~ zero ~ quotient .bool_set:N = \l__show_work_for_zero_quotient,
 }
 
 \cs_set:cpn { longdiv_digit_separator ~ _ }{
@@ -515,7 +516,12 @@
 \tl_new:N \l__longdiv_work_tl
 \cs_new:Nn \longdiv_divide_record:nn {
     \int_compare:nNnTF \l__longdiv_display_divisions_int < \c__longdiv_max_display_divisions_int {
-        \int_compare:nNnF \l__longdiv_quotient_int = \c_zero_int { % If the quotient was zero, nothing needs to be typeset
+        \bool_if:nT {
+            % If the quotient was zero, nothing needs to be typeset
+            \int_compare_p:nNn \l__longdiv_quotient_int > \c_zero_int
+            || (\l__show_work_for_zero_quotient % unless it was specifically requested to override this.
+            && \l__longdiv_seen_digit_bool) % If no other digits have been printed
+        }{
             \tl_set:Nx \l__longdiv_work_tl {
                 \l__longdiv_work_tl
                     { \int_use:N \l__longdiv_position_int } { #1 } { \int_eval:n { \l__longdiv_quotient_int * #2 } }

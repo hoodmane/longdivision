@@ -1,5 +1,5 @@
 \documentclass{ltxdoc}
-\def\version{Version 1.2.2}
+\def\version{Version 1.2.3}
 
 \let\ifluatex\relax
 \usepackage{ifluatex}
@@ -135,7 +135,13 @@ This controls how many steps worth of division to do. Thanks to Cam McLeman for 
 \end{key}
 
 \begin{key}{style = \meta{style} (initially standard)}
-Control the style for typesetting the result of long division. The options are |default|, |standard|, |tikz|, or |german|. The option |default| is the same as |tikz| if \tikzname\ is loaded and otherwise is the same as |standard|. You probably should load \tikzname\ because the \tikzname\ version looks significantly better. If you use this option, you'll probably want to set the style once and for all in your preamble with |\longdivisionkeys{style=|\meta{style}|}|.
+Control the style for typesetting the result of long division. The options
+are |default|, |standard|, |tikz|, |german|, or |brazilian|. The option
+|default| is the same as |tikz| if \tikzname\ is loaded and otherwise is the
+same as |standard|. You probably should load \tikzname\ because the
+\tikzname\ version looks significantly better. If you use this option,
+you'll probably want to set the style once and for all in your preamble with
+|\longdivisionkeys{style=|\meta{style}|}|.
 \begin{tcblisting}{}
 \intlongdivision[style = tikz    ]{100.0}{13} \quad
 \intlongdivision[style = standard]{100.0}{13} \quad
@@ -216,6 +222,17 @@ Specifies whether to include the decimal and digit separators in division work. 
 \longdivisionkeys{style = german}
 \longdivision[german division sign = $\,\div\,$ ]{14.1}{3} \quad
 \longdivision[german division sign = :          ]{14.1}{3}
+\end{tcblisting}
+\end{key}
+
+\begin{key}{show work for zero quotient = \meta{bool} (initially false)}
+Controls whether to show work when the quotient is zero.
+\begin{tcblisting}{}
+\longdivision{110}{11} \quad
+\longdivision[show work for zero quotient=true]{110}{11}
+\longdivision[show work for zero quotient=true]{1}{11}
+\longdivision[show work for zero quotient=true]{10}{11}
+\longdivision[show work for zero quotient=true]{100}{11}
 \end{tcblisting}
 \end{key}
 
