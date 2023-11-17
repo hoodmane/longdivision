@@ -41,7 +41,7 @@ The current development copy is hosted at https://github.com/hoodmane/longdivisi
 
 Changelog:
 ==========
-## [Unreleased]
+## [1.2.3](2023-11-16)
 ### Added:
 - Added an option to show division work even when the quotient is zero. It won't
   show division work for unwritten leading zeroes. E.g., in 100/11, the integer
